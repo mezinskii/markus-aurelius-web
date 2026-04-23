@@ -1,0 +1,87 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../../components/Shell';
+import { getFrontoLettersIndex } from '../../lib/sanity';
+import { romanize } from '../../lib/ui';
+
+const letters = await getFrontoLettersIndex();
+
+function stripFn(text: string) {
+  return text.replace(/\{\{fn:\d+\}\}/g, '').replace(/\[\d+\]/g, '');
+}
+
+// Group letters: Fronto → Marcus vs Marcus → Fronto
+const frontoToMarcus = letters.filter(l => l.sender?.includes('Fronto'));
+const marcusToFronto = letters.filter(l => !l.sender?.includes('Fronto'));
+---
+<Layout title="Letters — Fronto & Marcus Aurelius">
+  <Shell route="fronto" client:load>
+    <main class="wrap">
+
+      {/* Page header */}
+      <div class="crumbs">
+        <a href="/">Read</a>
+        <span class="sep">/</span>
+        <span>Letters</span>
+      </div>
+
+      <div class="book-head" style="grid-template-columns:auto 1fr">
+        <div class="book-head-num" style="font-size:clamp(48px,7vw,120px)">CLIII</div>
+        <div class="book-head-meta">
+          <div class="book-head-eyebrow">Marcus Aurelius & Fronto · c. 138–166 CE</div>
+          <h1 class="book-head-title">The <em>Letters</em></h1>
+          <p class="book-head-note">
+            153 letters and fragments between the emperor and his rhetoric teacher — warm, learned,
+            sometimes playful. C. R. Haines translation (Loeb Classical Library, 1919).
+          </p>
+        </div>
+      </div>
+
+      {/* Meta strip */}
+      <div class="home-meta" style="margin-bottom:56px;padding-top:24px;border-top:1px solid var(--rule)">
+        <div>Work<strong>Epistulae</strong></div>
+        <div>Letters<strong>153 sections</strong></div>
+        <div>Language<strong>Latin</strong></div>
+        <div>Translator<strong>C. R. Haines, 1919</strong></div>
+      </div>
+
+      {/* About the correspondence */}
+      <div style="max-width:var(--measure);margin-bottom:56px">
+        <p style="font-family:var(--serif);font-size:17px;line-height:1.65;color:var(--text-soft);margin:0 0 1em">
+          Marcus Aurelius studied under Marcus Cornelius Fronto from about 138 CE, when he was
+          seventeen, until Fronto's death around 166. Their letters — mostly preserved in a palimpsest
+          rediscovered in the Vatican and Milan libraries in 1815 — show a side of Marcus absent from
+          the <em>Meditations</em>: playful, affectionate, eager to please his teacher.
+        </p>
+        <p style="font-family:var(--serif);font-size:17px;line-height:1.65;color:var(--text-soft);margin:0">
+          The letters survive in fragments, sometimes with lacunae. Haines's Loeb edition fills gaps
+          with Latin and prints the Greek passages transliterated. What remains is intimate: master and
+          pupil debating rhetoric, exchanging gossip, worrying about each other's health.
+        </p>
+      </div>
+
+      {/* Letter list */}
+      <div class="books-section-head">
+        <h2>All {letters.length} letters <em style="font-size:18px;margin-left:10px">in order</em></h2>
+      </div>
+
+      <div class="passages">
+        {letters.map(l => (
+          <a href={`/fronto/${l.letter}`} class="passage-row">
+            <div class="passage-row-ref" style="min-width:100px">
+              Letter {romanize(l.letter)}
+            </div>
+            <div>
+              <div style="font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-mute);margin-bottom:4px">
+                {l.sender ?? '—'}
+                {l.addressee ? <> → {l.addressee}</> : ''}
+              </div>
+              <p class="passage-row-text">{stripFn(l.preview)}</p>
+            </div>
+            <span class="passage-row-arrow">→</span>
+          </a>
+        ))}
+      </div>
+    </main>
+  </Shell>
+</Layout>

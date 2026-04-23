@@ -1,0 +1,205 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../../components/Shell';
+import PassageTools from '../../components/PassageTools';
+import { getFrontoLetter, getFrontoLetterNumbers } from '../../lib/sanity';
+import { romanize } from '../../lib/ui';
+
+export async function getStaticPaths() {
+  const numbers = await getFrontoLetterNumbers();
+  return numbers.map(n => ({ params: { letter: String(n) } }));
+}
+
+const letterNum = parseInt(Astro.params.letter as string, 10);
+const sections = await getFrontoLetter(letterNum);
+
+if (!sections.length) {
+  return Astro.redirect('/fronto');
+}
+
+const first = sections[0]!;
+const sender = first.author.name.en;
+const addressee = first.addressee?.name.en ?? null;
+const isFromFronto = sender.includes('Fronto');
+
+const allNums = await getFrontoLetterNumbers();
+const idx = allNums.indexOf(letterNum);
+const prevLetter = idx > 0 ? allNums[idx - 1] : null;
+const nextLetter = idx < allNums.length - 1 ? allNums[idx + 1] : null;
+
+function renderText(text: string): string {
+  return text
+    .replace(/\{\{fn:(\d+)\}\}/g, '<sup class="fn-sup">$1</sup>')
+    .replace(/\[(\d+)\]/g, '<sup class="fn-sup">$1</sup>');
+}
+
+function parseSections(text: string) {
+  return text.split(/\n\n+/).filter(Boolean);
+}
+
+const fullText = sections.map(s => s.text).join('\n\n---\n\n');
+---
+<Layout title={`Letter ${romanize(letterNum)} — Fronto & Marcus Aurelius`}>
+  <Shell route="letter" client:load>
+    <div class="passage-screen">
+
+      {/* LEFT RAIL */}
+      <aside class="passage-side left">
+        <div class="crumbs" style="margin-bottom:24px;font-size:10px">
+          <a href="/">Read</a>
+          <span class="sep">/</span>
+          <a href="/fronto">Letters</a>
+        </div>
+
+        <div class="label">Letter</div>
+        <div class="value" style="margin-bottom:18px">
+          {romanize(letterNum)}
+          <span style="color:var(--text-mute);font-style:normal;font-family:var(--mono);font-size:12px"> — {letterNum}</span>
+        </div>
+
+        <div class="label">From</div>
+        <div class="value" style="margin-bottom:14px;font-size:15px">{sender}</div>
+
+        {addressee && <>
+          <div class="label">To</div>
+          <div class="value" style="font-size:15px">{addressee}</div>
+        </>}
+
+        <div class="divider"></div>
+
+        <a class="mini-cta" href="/fronto">← All letters</a>
+        {prevLetter && <a class="mini-cta" href={`/fronto/${prevLetter}`}>← Letter {romanize(prevLetter)}</a>}
+        {nextLetter && <a class="mini-cta" href={`/fronto/${nextLetter}`}>Letter {romanize(nextLetter)} →</a>}
+      </aside>
+
+      {/* CENTRE — the letter */}
+      <div class="passage-main">
+
+        {/* Letter header */}
+        <div class="ref-line">
+          <span class="ref-book">Letter {romanize(letterNum)}</span>
+          {' · '}C. R. Haines (1919) · Loeb Classical Library
+        </div>
+
+        <h1 class="passage-section" style="font-size:clamp(24px,3vw,38px)">
+          {isFromFronto
+            ? <>{sender} <span style="font-weight:400;font-size:0.6em;color:var(--text-mute)">to</span> {addressee}</>
+            : <>{sender} <span style="font-weight:400;font-size:0.6em;color:var(--text-mute)">to</span> {addressee ?? 'Fronto'}</>
+          }
+        </h1>
+
+        {/* Sections */}
+        {sections.map((sec, si) => {
+          const paras = parseSections(sec.text);
+          return (
+            <div class={`letter-section${si > 0 ? ' letter-section--sep' : ''}`}>
+              {sections.length > 1 && (
+                <div class="letter-section-num" style="font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-mute);margin-bottom:10px">
+                  § {sec.section}
+                </div>
+              )}
+              <div class="passage-body">
+                {paras.map((para, pi) => (
+                  pi === 0 && si === 0
+                    ? (
+                      <p>
+                        <span class="dropcap">{para[0]}</span>
+                        <span set:html={renderText(para.slice(1))} />
+                      </p>
+                    )
+                    : <p set:html={renderText(para)} />
+                ))}
+              </div>
+              {sec.footnotes && sec.footnotes.length > 0 && (
+                <div class="footnotes" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--rule)">
+                  {sec.footnotes.map(fn => (
+                    <div style="font-family:var(--serif);font-size:13.5px;line-height:1.5;color:var(--text-soft);margin-bottom:8px;display:flex;gap:10px">
+                      <span style="font-family:var(--mono);font-size:10px;color:var(--rubric);flex-shrink:0;padding-top:2px">{fn.key}</span>
+                      <span>{fn.text}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Tools */}
+        <PassageTools
+          book={0}
+          section={String(letterNum)}
+          text={fullText}
+          passageId={`fronto:${letterNum}`}
+          lang="en"
+          client:load
+        />
+
+        {/* Prev / next letter */}
+        <div class="passage-nav">
+          <a
+            href={prevLetter ? `/fronto/${prevLetter}` : '#'}
+            class={prevLetter ? '' : 'disabled'}
+            style={prevLetter ? '' : 'opacity:.35;pointer-events:none'}
+          >
+            <div class="eyebrow">← Earlier letter</div>
+            {prevLetter && <h5><em>Letter {romanize(prevLetter)}</em></h5>}
+          </a>
+          <a
+            href={nextLetter ? `/fronto/${nextLetter}` : '#'}
+            class={`next${nextLetter ? '' : ' disabled'}`}
+            style={nextLetter ? '' : 'opacity:.35;pointer-events:none'}
+          >
+            <div class="eyebrow">Later letter →</div>
+            {nextLetter && <h5><em>Letter {romanize(nextLetter)}</em></h5>}
+          </a>
+        </div>
+      </div>
+
+      {/* RIGHT RAIL */}
+      <aside class="passage-side right">
+        <div class="label">Correspondence</div>
+        <div style="margin-top:10px">
+          <div style="font-family:var(--serif);font-style:italic;font-size:15px;color:var(--text);margin-bottom:6px">
+            {isFromFronto ? 'Fronto to Marcus' : 'Marcus to Fronto'}
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text-mute);letter-spacing:.12em">
+            {sections.length} {sections.length === 1 ? 'section' : 'sections'}
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="label">About Fronto</div>
+        <div style="font-family:var(--serif);font-size:14px;line-height:1.55;color:var(--text-soft);margin-top:8px">
+          Marcus Cornelius Fronto (c. 100–166 CE) was a Roman rhetorician and advocate,
+          regarded as second only to Cicero in Latin oratory.
+        </div>
+
+        <div class="divider"></div>
+        <div class="label">Navigate</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-mute);line-height:1.8;margin-top:4px">
+          <div>← earlier letter</div>
+          <div>→ later letter</div>
+        </div>
+      </aside>
+
+    </div>
+  </Shell>
+</Layout>
+
+<style>
+.fn-sup {
+  font-family: var(--sans);
+  font-size: 0.58em;
+  font-weight: 600;
+  vertical-align: super;
+  line-height: 1;
+  color: var(--rubric);
+  padding: 0 2px;
+}
+.letter-section--sep {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px dashed var(--rule);
+}
+</style>

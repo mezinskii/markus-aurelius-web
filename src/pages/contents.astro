@@ -1,0 +1,39 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Shell from '../components/Shell';
+import { BOOK_META, romanize } from '../lib/ui';
+---
+<Layout title="Contents — Meditations">
+  <Shell route="contents" client:load>
+    <main class="wrap">
+      <div class="crumbs">
+        <a href="/">Read</a>
+        <span class="sep">/</span>
+        <span>Contents</span>
+      </div>
+
+      <div class="book-head">
+        <div class="book-head-num">XII</div>
+        <div class="book-head-meta">
+          <div class="book-head-eyebrow">Marcus Aurelius · 121–180 CE · written in Greek</div>
+          <h1 class="book-head-title">The twelve books <em>— 487 passages</em></h1>
+          <p class="book-head-note">
+            Each book is a standalone notebook. Read them in order, or open whichever chapter calls
+            to you today — there is no prescribed path.
+          </p>
+        </div>
+      </div>
+
+      <div class="books-grid">
+        {BOOK_META.map(b => (
+          <a href={`/book/${b.n}`} class="book-tile">
+            <div class="book-tile-num">{romanize(b.n)}</div>
+            <div class="book-tile-label">Book {b.n}</div>
+            <p class="book-tile-quote">"{b.quote.en}"</p>
+            <div class="book-tile-count">{b.count} passages</div>
+          </a>
+        ))}
+      </div>
+    </main>
+  </Shell>
+</Layout>

@@ -1,0 +1,171 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import Shell from '../../../components/Shell';
+import PassageTools from '../../../components/PassageTools';
+import { getMeditationsBook, getAllMeditationsPassages } from '../../../lib/sanity';
+import { BOOK_META, romanize } from '../../../lib/ui';
+
+export async function getStaticPaths() {
+  const all = await getAllMeditationsPassages('en');
+  return all.map(p => ({
+    params: { book: String(p.book), section: p.section },
+    props: { passage: p },
+  }));
+}
+
+const { book: bookParam, section } = Astro.params;
+const { passage } = Astro.props;
+const bookNum = parseInt(bookParam as string, 10);
+const meta = BOOK_META.find(b => b.n === bookNum)!;
+const bookPassages = await getMeditationsBook(bookNum, 'en');
+const idx = bookPassages.findIndex(p => p.section === section);
+const prevP = idx > 0 ? bookPassages[idx - 1] : null;
+const nextP = idx < bookPassages.length - 1 ? bookPassages[idx + 1] : null;
+
+// Cross-book prev/next
+let prevCross = prevP;
+let nextCross = nextP;
+if (!prevP && bookNum > 1) {
+  const prevBook = await getMeditationsBook(bookNum - 1, 'en');
+  prevCross = prevBook[prevBook.length - 1] ?? null;
+}
+if (!nextP && bookNum < 12) {
+  const nextBook = await getMeditationsBook(bookNum + 1, 'en');
+  nextCross = nextBook[0] ?? null;
+}
+
+function parseText(text: string) {
+  // Split into paragraphs on double newlines
+  return text
+    .replace(/\{\{fn:(\d+)\}\}/g, '<sup class="fn-sup">$1</sup>')
+    .replace(/\[(\d+)\]/g, '<sup class="fn-sup">$1</sup>')
+    .split(/\n\n+/)
+    .filter(Boolean);
+}
+
+const paragraphs = parseText(passage.text);
+const firstPara = paragraphs[0] ?? '';
+const dropcap = firstPara[0] ?? '';
+const firstRest = firstPara.slice(1);
+const restParas = paragraphs.slice(1);
+---
+<Layout title={`${romanize(bookNum)}.${section} — Meditations`}>
+  <Shell route="passage" client:load>
+    <div class="passage-screen">
+
+      {/* LEFT RAIL */}
+      <aside class="passage-side left">
+        <div class="crumbs" style="margin-bottom:24px;font-size:10px">
+          <a href="/">Read</a>
+          <span class="sep">/</span>
+          <a href={`/book/${bookNum}`}>Book {romanize(bookNum)}</a>
+        </div>
+        <div class="label">Book</div>
+        <div class="value" style="margin-bottom:18px">
+          {romanize(bookNum)} <span style="color:var(--text-mute);font-style:normal;font-family:var(--mono);font-size:12px">— {bookNum}</span>
+        </div>
+        <div class="label">Passage</div>
+        <div class="value">
+          {section} <span style="font-family:var(--mono);font-size:11px;color:var(--text-mute);font-style:normal">/ {meta.count}</span>
+        </div>
+        <div class="divider"></div>
+        <a class="mini-cta" href={`/book/${bookNum}`}>← Return to Book {romanize(bookNum)}</a>
+        <a class="mini-cta" href="/contents">Return to contents</a>
+      </aside>
+
+      {/* CENTRE — the passage */}
+      <div class="passage-main">
+        <div class="ref-line">
+          <span class="ref-book">Book {romanize(bookNum)}</span> · {section} · {passage.translator} ({
+            passage.language === 'en' ? '1862' : '1914'
+          })
+        </div>
+        <h1 class="passage-section">{section}.</h1>
+
+        <div class="passage-body">
+          <p>
+            <span class="dropcap">{dropcap}</span>
+            <span set:html={firstRest} />
+          </p>
+          {restParas.map(para => (
+            <p set:html={para} />
+          ))}
+        </div>
+
+        {passage.footnotes && passage.footnotes.length > 0 && (
+          <div class="footnotes" style="margin-top:32px;padding-top:20px;border-top:1px solid var(--rule)">
+            {passage.footnotes.map(fn => (
+              <div style="font-family:var(--serif);font-size:14px;line-height:1.55;color:var(--text-soft);margin-bottom:8px;display:flex;gap:10px">
+                <span style="font-family:var(--mono);font-size:11px;color:var(--rubric);flex-shrink:0;padding-top:2px">{fn.key}</span>
+                <span>{fn.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <PassageTools
+          book={bookNum}
+          section={section}
+          text={passage.text}
+          passageId={passage.passageId}
+          lang="en"
+          client:load
+        />
+
+        <div class="passage-nav">
+          <a
+            href={prevCross ? `/passage/${prevCross.book}/${prevCross.section}` : '#'}
+            class={prevCross ? '' : 'disabled'}
+            style={prevCross ? '' : 'opacity:.35;pointer-events:none'}
+          >
+            <div class="eyebrow">← Earlier</div>
+            {prevCross && <>
+              <h5><em>{romanize(prevCross.book)}.{prevCross.section}</em></h5>
+              <p class="preview">{prevCross.text.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '').slice(0, 120)}…</p>
+            </>}
+          </a>
+          <a
+            href={nextCross ? `/passage/${nextCross.book}/${nextCross.section}` : '#'}
+            class={`next${nextCross ? '' : ' disabled'}`}
+            style={nextCross ? '' : 'opacity:.35;pointer-events:none'}
+          >
+            <div class="eyebrow">Later →</div>
+            {nextCross && <>
+              <h5><em>{romanize(nextCross.book)}.{nextCross.section}</em></h5>
+              <p class="preview">{nextCross.text.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '').slice(0, 120)}…</p>
+            </>}
+          </a>
+        </div>
+      </div>
+
+      {/* RIGHT RAIL */}
+      <aside class="passage-side right">
+        <div class="label">Translation</div>
+        <div class="transl-list" style="margin-top:6px">
+          <a class="transl-item active" href="#">
+            <span class="transl-name">{passage.translator}</span>
+            <span class="transl-year">{passage.language === 'en' ? '1862 · Victorian plain style' : '1914 · Академический русский'}</span>
+          </a>
+        </div>
+        <div class="divider"></div>
+        <div class="label">Shortcut</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-mute);line-height:1.8;margin-top:4px">
+          <div>← earlier</div>
+          <div>→ later</div>
+        </div>
+      </aside>
+    </div>
+  </Shell>
+</Layout>
+
+<style>
+.fn-sup {
+  font-family: var(--sans);
+  font-size: 0.58em;
+  font-weight: 600;
+  vertical-align: super;
+  line-height: 1;
+  color: var(--rubric);
+  padding: 0 2px;
+}
+</style>

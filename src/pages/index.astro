@@ -1,11 +1,60 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
+import Shell from '../components/Shell';
+import RandomPassage from '../components/RandomPassage';
+import { getAllMeditationsPassages } from '../lib/sanity';
+import { BOOK_META, romanize } from '../lib/ui';
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const passages = await getAllMeditationsPassages('en');
+const passagesData = passages.map(p => ({
+  book: p.book,
+  section: p.section,
+  text: p.text,
+  translator: p.translator,
+}));
 ---
+<Layout title="Meditations — Marcus Aurelius">
+  <Shell route="home" client:load>
+    <main class="wrap">
+      <section class="home-hero">
+        <div>
+          <div class="home-eyebrow">Marcus Aurelius · 121–180 CE · written in Greek</div>
+          <h1 class="home-title">
+            Meditations<br /><em>for one reader</em>
+          </h1>
+          <p class="home-sub">
+            The private notebook of a Roman emperor, read as he wrote it — slowly, out of order,
+            and without commentary. Twelve books, every passage a direct link.
+          </p>
+          <div class="home-meta">
+            <div>Title<strong>Τὰ εἰς ἑαυτόν</strong></div>
+            <div>Composed<strong>c. 170–180 CE</strong></div>
+            <div>Books<strong>Twelve</strong></div>
+            <div>Translator<strong>George Long, 1862</strong></div>
+          </div>
+        </div>
 
-<Layout>
-	<Welcome />
+        <RandomPassage passages={passagesData} lang="en" client:load />
+      </section>
+
+      <section>
+        <div class="books-section-head">
+          <h2>The twelve books <em>487 passages</em></h2>
+          <a href="/contents" style="font-family:var(--sans);font-size:13px;color:var(--text-soft);border-bottom:1px solid var(--rule);">
+            Contents →
+          </a>
+        </div>
+        <div class="books-grid">
+          {BOOK_META.map(b => (
+            <a href={`/book/${b.n}`} class="book-tile">
+              <div class="book-tile-num">{romanize(b.n)}</div>
+              <div class="book-tile-label">Book {b.n}</div>
+              <p class="book-tile-quote">"{b.quote.en}"</p>
+              <div class="book-tile-count">{b.count} passages</div>
+            </a>
+          ))}
+        </div>
+      </section>
+    </main>
+  </Shell>
 </Layout>

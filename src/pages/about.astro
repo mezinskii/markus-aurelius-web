@@ -1,0 +1,86 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Shell from '../components/Shell';
+---
+<Layout title="About — Meditations">
+  <Shell route="about" client:load>
+    <main class="wrap">
+      <div class="crumbs">
+        <a href="/">Read</a>
+        <span class="sep">/</span>
+        <span>About</span>
+      </div>
+
+      <section class="about-hero">
+        <div class="about-portrait" aria-label="Marcus Aurelius portrait placeholder"></div>
+        <div class="about-bio">
+          <div class="eyebrow" style="margin-bottom:18px">Marcus Aurelius · 121–180 CE · written in Greek</div>
+          <h1 class="about-bio-head">
+            A quiet reader <em>for a restless book.</em>
+          </h1>
+          <p>
+            Marcus Aurelius wrote the Meditations in private, for himself, as a soldier and emperor.
+            It was never meant for publication. It survived anyway — by manuscript, then by press,
+            then by translation.
+          </p>
+          <p>
+            This site publishes all twelve books in the public-domain George Long translation,
+            indexed, searchable, and linkable by passage. No commentary. No feeds. No login.
+          </p>
+          <p>
+            The <a href="/fronto" style="color:var(--ochre-deep);border-bottom:1px solid currentColor">Letters to Fronto</a>
+            section adds forty-one surviving letters between Marcus and his rhetoric teacher,
+            in C. R. Haines's Loeb translation.
+          </p>
+        </div>
+      </section>
+
+      <section class="about-grid">
+        <div class="about-cell">
+          <div class="eyebrow">01</div>
+          <h3>Everything</h3>
+          <p>All 487 passages of the Meditations, plus 41 letters of the Fronto correspondence. George Long and C. R. Haines translations.</p>
+        </div>
+        <div class="about-cell">
+          <div class="eyebrow">02</div>
+          <h3>Permalink</h3>
+          <p>Every passage has its own URL. Cite, share, or quote without losing the reference.</p>
+        </div>
+        <div class="about-cell">
+          <div class="eyebrow">03</div>
+          <h3>Public domain</h3>
+          <p>Every translation here is in the public domain. You can reuse them freely.</p>
+        </div>
+      </section>
+
+      <section class="about-translators">
+        <div class="transl-col">
+          <h4>Meditations translator</h4>
+          <div class="transl-entry">
+            <span class="name">George Long</span>
+            <span class="yr">1862 · public domain</span>
+          </div>
+        </div>
+        <div class="transl-col">
+          <h4>Letters translator</h4>
+          <div class="transl-entry">
+            <span class="name">C. R. Haines</span>
+            <span class="yr">1919 · public domain</span>
+          </div>
+        </div>
+      </section>
+
+      <section style="margin-top:48px;padding:32px;background:var(--card);border:1px solid var(--rule);border-radius:4px;position:relative">
+        <div style="position:absolute;left:0;right:0;top:-1px;height:3px;background:linear-gradient(90deg,var(--ochre),var(--ochre-deep) 60%,transparent)"></div>
+        <div class="eyebrow" style="margin-bottom:10px">Data source</div>
+        <h3 style="font-family:var(--serif);font-weight:400;font-size:22px;margin:0 0 10px">
+          Powered by <em style="color:var(--ochre-deep)">Sanity CMS</em>
+        </h3>
+        <p style="font-family:var(--serif);font-size:16px;line-height:1.55;color:var(--text-soft);margin:0;max-width:40rem">
+          All texts are stored in Sanity's content platform and fetched at build time. The schema
+          supports multiple works, languages, and translators — foundation for future expansions.
+        </p>
+      </section>
+    </main>
+  </Shell>
+</Layout>

@@ -1,0 +1,64 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../../components/Shell';
+import { getMeditationsBook } from '../../lib/sanity';
+import { BOOK_META, romanize } from '../../lib/ui';
+
+export async function getStaticPaths() {
+  return Array.from({ length: 12 }, (_, i) => ({ params: { n: String(i + 1) } }));
+}
+
+const bookNum = parseInt(Astro.params.n as string, 10);
+const meta = BOOK_META.find(b => b.n === bookNum)!;
+const passages = await getMeditationsBook(bookNum, 'en');
+
+const prev = bookNum > 1 ? bookNum - 1 : null;
+const next = bookNum < 12 ? bookNum + 1 : null;
+
+function stripFn(text: string) {
+  return text.replace(/\{\{fn:\d+\}\}/g, '').replace(/\[\d+\]/g, '');
+}
+---
+<Layout title={`Book ${romanize(bookNum)} — Meditations`}>
+  <Shell route="book" client:load>
+    <main class="wrap">
+      <div class="crumbs">
+        <a href="/">Read</a>
+        <span class="sep">/</span>
+        <a href="/contents">Contents</a>
+        <span class="sep">/</span>
+        <span>Book {romanize(bookNum)}</span>
+      </div>
+
+      <div class="book-head">
+        <div class="book-head-num">{romanize(bookNum)}</div>
+        <div class="book-head-meta">
+          <div class="book-head-eyebrow">Book {bookNum} of Twelve · {passages.length} passages</div>
+          <h1 class="book-head-title">Book <em>{romanize(bookNum)}</em></h1>
+          <p class="book-head-note">{meta.note.en}</p>
+        </div>
+      </div>
+
+      <div class="passages">
+        {passages.map(p => (
+          <a href={`/passage/${p.book}/${p.section}`} class="passage-row">
+            <div class="passage-row-ref">{romanize(p.book)}.{p.section}</div>
+            <p class="passage-row-text">{stripFn(p.text)}</p>
+            <span class="passage-row-arrow">→</span>
+          </a>
+        ))}
+      </div>
+
+      <div class="book-nav">
+        <a href={prev ? `/book/${prev}` : '#'} class={prev ? '' : 'disabled'} style={prev ? '' : 'opacity:.35;pointer-events:none'}>
+          <div class="eyebrow">← Previous book</div>
+          {prev && <h4><em>{romanize(prev)}</em> · {BOOK_META[prev - 1].note.en.slice(0, 48)}</h4>}
+        </a>
+        <a href={next ? `/book/${next}` : '#'} class={`next${next ? '' : ' disabled'}`} style={next ? '' : 'opacity:.35;pointer-events:none'}>
+          <div class="eyebrow">Next book →</div>
+          {next && <h4><em>{romanize(next)}</em> · {BOOK_META[next - 1].note.en.slice(0, 48)}</h4>}
+        </a>
+      </div>
+    </main>
+  </Shell>
+</Layout>
