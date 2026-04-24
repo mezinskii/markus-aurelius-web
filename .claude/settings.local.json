@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "PowerShell(Set-Location c:\\\\projects\\\\markus-aurelius-web; npm run preview -- --port 4322 2>&1 | Select-Object -First 5)",
-      "PowerShell(npx astro check 2>&1)"
+      "PowerShell(npx astro check 2>&1)",
+      "PowerShell(npx astro build 2>&1)"
     ]
   }
 }

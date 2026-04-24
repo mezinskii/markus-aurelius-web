@@ -137,6 +137,28 @@ export async function getFrontoLetter(letter: number): Promise<FrontoPassage[]> 
   );
 }
 
+// ─── Sayings queries ───────────────────────────────────────────────────────────
+
+export interface Saying {
+  _id: string;
+  passageId: string;
+  chapter: number;
+  order: number;
+  source: string;
+  text: string;
+  translator: string;
+  language: string;
+  footnotes: Array<{ key: string; text: string }> | null;
+}
+
+export async function getAllSayings(): Promise<Saying[]> {
+  return client.fetch<Saying[]>(
+    `*[_type=="passage" && work._ref=="work.marcus-sayings"]
+     | order(order asc)
+     {_id, passageId, chapter, order, source, text, translator, language, footnotes}`,
+  );
+}
+
 export async function getFrontoLetterNumbers(): Promise<number[]> {
   const rows = await client.fetch<Array<{ letter: number }>>(
     `*[_type=="passage" && work._ref=="work.fronto-correspondence"]

@@ -1,0 +1,191 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Shell from '../components/Shell';
+import { getAllSayings } from '../lib/sanity';
+import { romanize } from '../lib/ui';
+
+const sayings = await getAllSayings();
+
+function renderText(text: string): string {
+  return text
+    .replace(/\{\{fn:(\d+)\}\}/g, '<sup class="fn-sup">$1</sup>')
+    .replace(/\[(\d+)\]/g, '<sup class="fn-sup">$1</sup>');
+}
+
+function stripMarkers(text: string): string {
+  return text.replace(/\{\{fn:\d+\}\}/g, '').replace(/\[\d+\]/g, '');
+}
+---
+<Layout title="Sayings of Marcus Aurelius">
+  <Shell route="sayings" client:load>
+    <main class="wrap">
+
+      <div class="crumbs">
+        <a href="/">Read</a>
+        <span class="sep">/</span>
+        <span>Sayings</span>
+      </div>
+
+      <div class="book-head" style="grid-template-columns:auto 1fr">
+        <div class="book-head-num" style="font-size:clamp(48px,7vw,120px)">{romanize(sayings.length)}</div>
+        <div class="book-head-meta">
+          <div class="book-head-eyebrow">Marcus Aurelius · recorded by ancient biographers · not from the <em>Meditations</em></div>
+          <h1 class="book-head-title">The <em>Sayings</em></h1>
+          <p class="book-head-note">
+            {sayings.length} short fragments preserved by Dio Cassius, the <em>Historia Augusta</em>, and
+            others — remarks overheard at council, the sickbed, the battlefield. Collected in the Loeb
+            Appendix (Haines, 1916).
+          </p>
+        </div>
+      </div>
+
+      <div class="home-meta" style="margin-bottom:56px;padding-top:24px;border-top:1px solid var(--rule)">
+        <div>Count<strong>{sayings.length}</strong></div>
+        <div>Translator<strong>C. R. Haines, 1916</strong></div>
+        <div>Sources<strong>Dio · Capitolinus</strong></div>
+        <div>Rights<strong>Public domain</strong></div>
+      </div>
+
+      <div style="max-width:var(--measure);margin-bottom:56px">
+        <p style="font-family:var(--serif);font-size:17px;line-height:1.65;color:var(--text-soft);margin:0 0 1em">
+          These are not from the <em>Meditations</em>. They survive as anecdote: overheard by a
+          courtier, copied into a history, remembered by a biographer. Brief, uneven, sometimes
+          apocryphal — but closer to a voice in a room than the pages Marcus wrote to himself at night.
+        </p>
+      </div>
+
+      <div class="books-section-head">
+        <h2>All {sayings.length} sayings <em style="font-size:18px;margin-left:10px">in order</em></h2>
+      </div>
+
+      <div class="sayings-list">
+        {sayings.map(s => (
+          <article class="saying-card" id={`s${s.order}`}>
+            <div class="saying-card-num">{String(s.order).padStart(2, '0')}</div>
+            <div class="saying-card-body">
+              <p class="saying-card-text" set:html={renderText(s.text)} />
+              <div class="saying-card-meta">
+                <span class="saying-card-source">— {s.source}</span>
+                <a class="saying-card-anchor" href={`#s${s.order}`} aria-label={`Permalink to saying ${s.order}`}>#</a>
+              </div>
+              {s.footnotes && s.footnotes.length > 0 && (
+                <div class="saying-card-footnotes">
+                  {s.footnotes.map(fn => (
+                    <div class="saying-card-fn">
+                      <span class="saying-card-fn-key">{fn.key}</span>
+                      <span>{fn.text}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div style="margin-top:56px;padding-top:32px;border-top:1px solid var(--rule);font-family:var(--sans);font-size:13px;color:var(--text-soft)">
+        <a href="/" style="border-bottom:1px solid var(--rule)">← Back to Meditations</a>
+      </div>
+    </main>
+  </Shell>
+</Layout>
+
+<style>
+.fn-sup {
+  font-family: var(--sans);
+  font-size: 0.58em;
+  font-weight: 600;
+  vertical-align: super;
+  line-height: 1;
+  color: var(--rubric);
+  padding: 0 2px;
+}
+
+.sayings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.saying-card {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 28px;
+  padding: 32px 0;
+  border-top: 1px solid var(--rule);
+  align-items: baseline;
+  scroll-margin-top: 80px;
+}
+.saying-card:last-of-type {
+  border-bottom: 1px solid var(--rule);
+}
+.saying-card:target {
+  background: color-mix(in oklch, var(--ochre-wash) 35%, transparent);
+}
+.saying-card-num {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--rubric);
+  padding-top: 6px;
+}
+.saying-card-text {
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--text);
+  margin: 0 0 14px;
+  text-wrap: pretty;
+}
+.saying-card-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.saying-card-source {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+.saying-card-anchor {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-mute);
+  opacity: 0;
+  transition: opacity .18s;
+  border-bottom: 0 !important;
+}
+.saying-card:hover .saying-card-anchor,
+.saying-card:target .saying-card-anchor {
+  opacity: 1;
+  color: var(--ochre-deep);
+}
+.saying-card-footnotes {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--rule);
+}
+.saying-card-fn {
+  display: flex;
+  gap: 10px;
+  font-family: var(--serif);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-soft);
+  margin-bottom: 6px;
+}
+.saying-card-fn-key {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--rubric);
+  flex-shrink: 0;
+  padding-top: 3px;
+  min-width: 14px;
+}
+
+@media (max-width: 720px) {
+  .saying-card { grid-template-columns: 56px 1fr; gap: 16px; padding: 24px 0; }
+  .saying-card-text { font-size: 16.5px; }
+}
+</style>

@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { UI, type Lang } from '../lib/ui';
 
 interface Props {
-  route: 'home' | 'contents' | 'about' | 'fronto' | 'book' | 'passage' | 'letter';
+  route: 'home' | 'contents' | 'about' | 'fronto' | 'book' | 'passage' | 'letter' | 'sayings';
   children: ReactNode;
 }
 
@@ -65,6 +65,7 @@ export default function Shell({ route, children }: Props) {
             <a className={route === 'home' || route === 'book' || route === 'passage' ? 'active' : ''} href="/">{t.read}</a>
             <a className={route === 'contents' ? 'active' : ''} href="/contents">{t.contents}</a>
             <a className={route === 'fronto' || route === 'letter' ? 'active' : ''} href="/fronto">{t.fronto}</a>
+            <a className={route === 'sayings' ? 'active' : ''} href="/sayings">{t.sayings}</a>
             <a className={route === 'about' ? 'active' : ''} href="/about">{t.about}</a>
           </nav>
 
