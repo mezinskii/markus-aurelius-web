@@ -1,6 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Shell from '../components/Shell';
+import { getFrontoLetterNumbers } from '../lib/sanity';
+
+const letterCount = (await getFrontoLetterNumbers()).length;
 ---
 <Layout title="About — Meditations">
   <Shell route="about" client:load>
@@ -12,7 +15,9 @@ import Shell from '../components/Shell';
       </div>
 
       <section class="about-hero">
-        <div class="about-portrait" aria-label="Marcus Aurelius portrait placeholder"></div>
+        <div class="about-portrait">
+          <img src="/markus.png" alt="Marcus Aurelius — Roman marble bust" />
+        </div>
         <div class="about-bio">
           <div class="eyebrow" style="margin-bottom:18px">Marcus Aurelius · 121–180 CE · written in Greek</div>
           <h1 class="about-bio-head">
@@ -29,7 +34,7 @@ import Shell from '../components/Shell';
           </p>
           <p>
             The <a href="/fronto" style="color:var(--ochre-deep);border-bottom:1px solid currentColor">Letters to Fronto</a>
-            section adds forty-one surviving letters between Marcus and his rhetoric teacher,
+            section adds {letterCount} surviving letters between Marcus and his rhetoric teacher,
             in C. R. Haines's Loeb translation.
           </p>
         </div>
@@ -39,7 +44,7 @@ import Shell from '../components/Shell';
         <div class="about-cell">
           <div class="eyebrow">01</div>
           <h3>Everything</h3>
-          <p>All 487 passages of the Meditations, plus 41 letters of the Fronto correspondence. George Long and C. R. Haines translations.</p>
+          <p>All 487 passages of the Meditations, plus {letterCount} letters of the Fronto correspondence. George Long and C. R. Haines translations.</p>
         </div>
         <div class="about-cell">
           <div class="eyebrow">02</div>
@@ -68,18 +73,6 @@ import Shell from '../components/Shell';
             <span class="yr">1919 · public domain</span>
           </div>
         </div>
-      </section>
-
-      <section style="margin-top:48px;padding:32px;background:var(--card);border:1px solid var(--rule);border-radius:4px;position:relative">
-        <div style="position:absolute;left:0;right:0;top:-1px;height:3px;background:linear-gradient(90deg,var(--ochre),var(--ochre-deep) 60%,transparent)"></div>
-        <div class="eyebrow" style="margin-bottom:10px">Data source</div>
-        <h3 style="font-family:var(--serif);font-weight:400;font-size:22px;margin:0 0 10px">
-          Powered by <em style="color:var(--ochre-deep)">Sanity CMS</em>
-        </h3>
-        <p style="font-family:var(--serif);font-size:16px;line-height:1.55;color:var(--text-soft);margin:0;max-width:40rem">
-          All texts are stored in Sanity's content platform and fetched at build time. The schema
-          supports multiple works, languages, and translators — foundation for future expansions.
-        </p>
       </section>
     </main>
   </Shell>
