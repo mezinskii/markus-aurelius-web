@@ -8,7 +8,7 @@ const { title = "Meditations — Marcus Aurelius", lang = "en" } = Astro.props;
 ---
 
 <!doctype html>
-<html lang={lang}>
+<html lang={lang} data-lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -32,12 +32,17 @@ const { title = "Meditations — Marcus Aurelius", lang = "en" } = Astro.props;
       <slot />
     </div>
     <script is:inline>
-      // Restore theme from localStorage to avoid flash
+      // Restore theme + language from localStorage to avoid flash
       try {
         const t = localStorage.getItem("theme");
         if (t === "dark")
           document.documentElement.setAttribute("data-theme", "dark");
-      } catch {}
+        const l = localStorage.getItem("lang");
+        document.documentElement.setAttribute("data-lang", l === "ru" ? "ru" : "en");
+        if (l === "ru") document.documentElement.setAttribute("lang", "ru");
+      } catch {
+        document.documentElement.setAttribute("data-lang", "en");
+      }
     </script>
     <Analytics />
   </body>

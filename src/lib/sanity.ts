@@ -49,7 +49,7 @@ export async function getMeditationsBook(
   book: number,
   lang: 'en' | 'ru' = 'en',
 ): Promise<MeditationPassage[]> {
-  const translator = lang === 'ru' ? 'Семён Роговин' : 'George Long';
+  const translator = lang === 'ru' ? 'Роговин' : 'George Long';
   return client.fetch<MeditationPassage[]>(
     `*[_type=="passage" && work._ref=="work.meditations" && book==$book && translator==$translator]
      | order(section asc) {_id, passageId, book, section, text, language, translator, footnotes}`,
@@ -60,7 +60,7 @@ export async function getMeditationsBook(
 export async function getAllMeditationsPassages(
   lang: 'en' | 'ru' = 'en',
 ): Promise<MeditationPassage[]> {
-  const translator = lang === 'ru' ? 'Семён Роговин' : 'George Long';
+  const translator = lang === 'ru' ? 'Роговин' : 'George Long';
   return client.fetch<MeditationPassage[]>(
     `*[_type=="passage" && work._ref=="work.meditations" && translator==$translator]
      | order(book asc, section asc) {_id, passageId, book, section, text, language, translator, footnotes}`,
@@ -73,7 +73,7 @@ export async function getMeditationsPassage(
   section: string,
   lang: 'en' | 'ru' = 'en',
 ): Promise<MeditationPassage | null> {
-  const translator = lang === 'ru' ? 'Семён Роговин' : 'George Long';
+  const translator = lang === 'ru' ? 'Роговин' : 'George Long';
   const results = await client.fetch<MeditationPassage[]>(
     `*[_type=="passage" && work._ref=="work.meditations"
        && book==$book && section==$section && translator==$translator][0..0]

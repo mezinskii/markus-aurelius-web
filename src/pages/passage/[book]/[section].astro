@@ -1,53 +1,107 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
 import Shell from '../../../components/Shell';
+import T from '../../../components/T.astro';
 import PassageTools from '../../../components/PassageTools';
-import { getMeditationsBook, getAllMeditationsPassages } from '../../../lib/sanity';
+import { getMeditationsBook, getAllMeditationsPassages, type MeditationPassage } from '../../../lib/sanity';
 import { BOOK_META, romanize } from '../../../lib/ui';
+import { renderWithFootnotes } from '../../../lib/footnotes';
 
 export async function getStaticPaths() {
-  const all = await getAllMeditationsPassages('en');
-  return all.map(p => ({
-    params: { book: String(p.book), section: p.section },
-    props: { passage: p },
-  }));
+  const [enAll, ruAll] = await Promise.all([
+    getAllMeditationsPassages('en'),
+    getAllMeditationsPassages('ru'),
+  ]);
+  const seen = new Set<string>();
+  const params: Array<{ params: { book: string; section: string }; props: { en: MeditationPassage | null; ru: MeditationPassage | null } }> = [];
+
+  // Build (book, section) -> {en, ru} map
+  const byKey = new Map<string, { en?: MeditationPassage; ru?: MeditationPassage }>();
+  for (const p of enAll) {
+    const k = `${p.book}:${p.section}`;
+    const e = byKey.get(k) ?? {};
+    e.en = p;
+    byKey.set(k, e);
+  }
+  for (const p of ruAll) {
+    const k = `${p.book}:${p.section}`;
+    const e = byKey.get(k) ?? {};
+    e.ru = p;
+    byKey.set(k, e);
+  }
+
+  for (const [k, v] of byKey) {
+    if (seen.has(k)) continue;
+    seen.add(k);
+    const [book, section] = k.split(':');
+    params.push({
+      params: { book, section },
+      props: { en: v.en ?? null, ru: v.ru ?? null },
+    });
+  }
+  return params;
 }
 
+const { en, ru } = Astro.props as { en: MeditationPassage | null; ru: MeditationPassage | null };
 const { book: bookParam, section } = Astro.params;
-const { passage } = Astro.props;
 const bookNum = parseInt(bookParam as string, 10);
 const meta = BOOK_META.find(b => b.n === bookNum)!;
-const bookPassages = await getMeditationsBook(bookNum, 'en');
-const idx = bookPassages.findIndex(p => p.section === section);
-const prevP = idx > 0 ? bookPassages[idx - 1] : null;
-const nextP = idx < bookPassages.length - 1 ? bookPassages[idx + 1] : null;
 
-// Cross-book prev/next
-let prevCross = prevP;
-let nextCross = nextP;
-if (!prevP && bookNum > 1) {
-  const prevBook = await getMeditationsBook(bookNum - 1, 'en');
-  prevCross = prevBook[prevBook.length - 1] ?? null;
-}
-if (!nextP && bookNum < 12) {
-  const nextBook = await getMeditationsBook(bookNum + 1, 'en');
-  nextCross = nextBook[0] ?? null;
+const [enBook, ruBook] = await Promise.all([
+  getMeditationsBook(bookNum, 'en'),
+  getMeditationsBook(bookNum, 'ru'),
+]);
+
+function findNeighbours(list: MeditationPassage[], section: string) {
+  const idx = list.findIndex(p => p.section === section);
+  return {
+    prev: idx > 0 ? list[idx - 1] : null,
+    next: idx >= 0 && idx < list.length - 1 ? list[idx + 1] : null,
+    has: idx >= 0,
+  };
 }
 
-function parseText(text: string) {
-  // Split into paragraphs on double newlines
-  return text
-    .replace(/\{\{fn:(\d+)\}\}/g, '<sup class="fn-sup">$1</sup>')
-    .replace(/\[(\d+)\]/g, '<sup class="fn-sup">$1</sup>')
-    .split(/\n\n+/)
-    .filter(Boolean);
+const enN = findNeighbours(enBook, section as string);
+const ruN = findNeighbours(ruBook, section as string);
+
+// Cross-book fallback for prev/next (use EN ordering as canonical)
+let enPrev = enN.prev;
+let enNext = enN.next;
+if (enN.has) {
+  if (!enPrev && bookNum > 1) {
+    const prevBook = await getMeditationsBook(bookNum - 1, 'en');
+    enPrev = prevBook[prevBook.length - 1] ?? null;
+  }
+  if (!enNext && bookNum < 12) {
+    const nextBook = await getMeditationsBook(bookNum + 1, 'en');
+    enNext = nextBook[0] ?? null;
+  }
+}
+let ruPrev = ruN.prev;
+let ruNext = ruN.next;
+if (ruN.has) {
+  if (!ruPrev && bookNum > 1) {
+    const prevBook = await getMeditationsBook(bookNum - 1, 'ru');
+    ruPrev = prevBook[prevBook.length - 1] ?? null;
+  }
+  if (!ruNext && bookNum < 12) {
+    const nextBook = await getMeditationsBook(bookNum + 1, 'ru');
+    ruNext = nextBook[0] ?? null;
+  }
 }
 
-const paragraphs = parseText(passage.text);
-const firstPara = paragraphs[0] ?? '';
-const dropcap = firstPara[0] ?? '';
-const firstRest = firstPara.slice(1);
-const restParas = paragraphs.slice(1);
+function buildBody(passage: MeditationPassage) {
+  const html = renderWithFootnotes(passage.text, passage.footnotes);
+  const paragraphs = html.split(/\n\n+/).filter(Boolean);
+  const first = paragraphs[0] ?? '';
+  return {
+    dropcap: first[0] ?? '',
+    firstRest: first.slice(1),
+    rest: paragraphs.slice(1),
+  };
+}
+const enBody = en ? buildBody(en) : null;
+const ruBody = ru ? buildBody(ru) : null;
 ---
 <Layout title={`${romanize(bookNum)}.${section} — Meditations`}>
   <Shell route="passage" client:load>
@@ -56,83 +110,151 @@ const restParas = paragraphs.slice(1);
       {/* LEFT RAIL */}
       <aside class="passage-side left">
         <div class="crumbs" style="margin-bottom:24px;font-size:10px">
-          <a href="/">Read</a>
+          <a href="/"><T en="Read" ru="Читать" /></a>
           <span class="sep">/</span>
-          <a href={`/book/${bookNum}`}>Book {romanize(bookNum)}</a>
+          <a href={`/book/${bookNum}`}><T en="Book" ru="Книга" /> {romanize(bookNum)}</a>
         </div>
-        <div class="label">Book</div>
+        <div class="label"><T en="Book" ru="Книга" /></div>
         <div class="value" style="margin-bottom:18px">
           {romanize(bookNum)} <span style="color:var(--text-mute);font-style:normal;font-family:var(--mono);font-size:12px">— {bookNum}</span>
         </div>
-        <div class="label">Passage</div>
+        <div class="label"><T en="Passage" ru="Пассаж" /></div>
         <div class="value">
           {section} <span style="font-family:var(--mono);font-size:11px;color:var(--text-mute);font-style:normal">/ {meta.count}</span>
         </div>
         <div class="divider"></div>
-        <a class="mini-cta" href={`/book/${bookNum}`}>← Return to Book {romanize(bookNum)}</a>
-        <a class="mini-cta" href="/contents">Return to contents</a>
+        <a class="mini-cta" href={`/book/${bookNum}`}>
+          <T en={`← Return to Book ${romanize(bookNum)}`} ru={`← К книге ${romanize(bookNum)}`} />
+        </a>
+        <a class="mini-cta" href="/contents"><T en="Return to contents" ru="К оглавлению" /></a>
       </aside>
 
       {/* CENTRE — the passage */}
       <div class="passage-main">
         <div class="ref-line">
-          <span class="ref-book">Book {romanize(bookNum)}</span> · {section} · {passage.translator} ({
-            passage.language === 'en' ? '1862' : '1914'
-          })
+          <span class="ref-book"><T en="Book" ru="Книга" /> {romanize(bookNum)}</span> · {section} ·
+          <span data-i18n="en"> George Long (1862)</span>
+          <span data-i18n="ru"> С. Роговин (1914)</span>
         </div>
         <h1 class="passage-section">{section}.</h1>
 
-        <div class="passage-body">
-          <p>
-            <span class="dropcap">{dropcap}</span>
-            <span set:html={firstRest} />
-          </p>
-          {restParas.map(para => (
-            <p set:html={para} />
-          ))}
-        </div>
-
-        {passage.footnotes && passage.footnotes.length > 0 && (
-          <div class="footnotes" style="margin-top:32px;padding-top:20px;border-top:1px solid var(--rule)">
-            {passage.footnotes.map(fn => (
-              <div style="font-family:var(--serif);font-size:14px;line-height:1.55;color:var(--text-soft);margin-bottom:8px;display:flex;gap:10px">
-                <span style="font-family:var(--mono);font-size:11px;color:var(--rubric);flex-shrink:0;padding-top:2px">{fn.key}</span>
-                <span>{fn.text}</span>
+        {/* English body */}
+        {enBody ? (
+          <div data-i18n="en">
+            <div class="passage-body">
+              <p>
+                <span class="dropcap">{enBody.dropcap}</span>
+                <span set:html={enBody.firstRest} />
+              </p>
+              {enBody.rest.map(para => (
+                <p set:html={para} />
+              ))}
+            </div>
+            {en?.footnotes && en.footnotes.length > 0 && (
+              <div class="footnotes" style="margin-top:32px;padding-top:20px;border-top:1px solid var(--rule)">
+                {en.footnotes.map(fn => (
+                  <div style="font-family:var(--serif);font-size:14px;line-height:1.55;color:var(--text-soft);margin-bottom:8px;display:flex;gap:10px">
+                    <span style="font-family:var(--mono);font-size:11px;color:var(--rubric);flex-shrink:0;padding-top:2px">{fn.key}</span>
+                    <span>{fn.text}</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+          </div>
+        ) : (
+          <div data-i18n="en" style="font-family:var(--serif);font-style:italic;color:var(--text-mute)">
+            English translation unavailable for this passage.
+          </div>
+        )}
+
+        {/* Russian body */}
+        {ruBody ? (
+          <div data-i18n="ru">
+            <div class="passage-body">
+              <p>
+                <span class="dropcap">{ruBody.dropcap}</span>
+                <span set:html={ruBody.firstRest} />
+              </p>
+              {ruBody.rest.map(para => (
+                <p set:html={para} />
+              ))}
+            </div>
+            {ru?.footnotes && ru.footnotes.length > 0 && (
+              <div class="footnotes" style="margin-top:32px;padding-top:20px;border-top:1px solid var(--rule)">
+                {ru.footnotes.map(fn => (
+                  <div style="font-family:var(--serif);font-size:14px;line-height:1.55;color:var(--text-soft);margin-bottom:8px;display:flex;gap:10px">
+                    <span style="font-family:var(--mono);font-size:11px;color:var(--rubric);flex-shrink:0;padding-top:2px">{fn.key}</span>
+                    <span>{fn.text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div data-i18n="ru" style="font-family:var(--serif);font-style:italic;color:var(--text-mute)">
+            Русский перевод этого пассажа отсутствует.
           </div>
         )}
 
         <PassageTools
           book={bookNum}
-          section={section}
-          text={passage.text}
-          passageId={passage.passageId}
-          lang="en"
+          section={section as string}
+          textEn={en?.text ?? ''}
+          textRu={ru?.text ?? ''}
+          passageId={(en ?? ru)?.passageId ?? `${bookNum}:${section}`}
           client:load
         />
 
         <div class="passage-nav">
+          {/* English prev/next */}
           <a
-            href={prevCross ? `/passage/${prevCross.book}/${prevCross.section}` : '#'}
-            class={prevCross ? '' : 'disabled'}
-            style={prevCross ? '' : 'opacity:.35;pointer-events:none'}
+            data-i18n="en"
+            href={enPrev ? `/passage/${enPrev.book}/${enPrev.section}` : '#'}
+            class={enPrev ? '' : 'disabled'}
+            style={enPrev ? '' : 'opacity:.35;pointer-events:none'}
           >
             <div class="eyebrow">← Earlier</div>
-            {prevCross && <>
-              <h5><em>{romanize(prevCross.book)}.{prevCross.section}</em></h5>
-              <p class="preview">{prevCross.text.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '').slice(0, 120)}…</p>
+            {enPrev && <>
+              <h5><em>{romanize(enPrev.book)}.{enPrev.section}</em></h5>
+              <p class="preview">{enPrev.text.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '').slice(0, 120)}…</p>
             </>}
           </a>
           <a
-            href={nextCross ? `/passage/${nextCross.book}/${nextCross.section}` : '#'}
-            class={`next${nextCross ? '' : ' disabled'}`}
-            style={nextCross ? '' : 'opacity:.35;pointer-events:none'}
+            data-i18n="en"
+            href={enNext ? `/passage/${enNext.book}/${enNext.section}` : '#'}
+            class={`next${enNext ? '' : ' disabled'}`}
+            style={enNext ? '' : 'opacity:.35;pointer-events:none'}
           >
             <div class="eyebrow">Later →</div>
-            {nextCross && <>
-              <h5><em>{romanize(nextCross.book)}.{nextCross.section}</em></h5>
-              <p class="preview">{nextCross.text.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '').slice(0, 120)}…</p>
+            {enNext && <>
+              <h5><em>{romanize(enNext.book)}.{enNext.section}</em></h5>
+              <p class="preview">{enNext.text.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '').slice(0, 120)}…</p>
+            </>}
+          </a>
+
+          {/* Russian prev/next */}
+          <a
+            data-i18n="ru"
+            href={ruPrev ? `/passage/${ruPrev.book}/${ruPrev.section}` : '#'}
+            class={ruPrev ? '' : 'disabled'}
+            style={ruPrev ? '' : 'opacity:.35;pointer-events:none'}
+          >
+            <div class="eyebrow">← Предыдущий</div>
+            {ruPrev && <>
+              <h5><em>{romanize(ruPrev.book)}.{ruPrev.section}</em></h5>
+              <p class="preview">{ruPrev.text.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '').slice(0, 120)}…</p>
+            </>}
+          </a>
+          <a
+            data-i18n="ru"
+            href={ruNext ? `/passage/${ruNext.book}/${ruNext.section}` : '#'}
+            class={`next${ruNext ? '' : ' disabled'}`}
+            style={ruNext ? '' : 'opacity:.35;pointer-events:none'}
+          >
+            <div class="eyebrow">Следующий →</div>
+            {ruNext && <>
+              <h5><em>{romanize(ruNext.book)}.{ruNext.section}</em></h5>
+              <p class="preview">{ruNext.text.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '').slice(0, 120)}…</p>
             </>}
           </a>
         </div>
@@ -140,32 +262,26 @@ const restParas = paragraphs.slice(1);
 
       {/* RIGHT RAIL */}
       <aside class="passage-side right">
-        <div class="label">Translation</div>
+        <div class="label"><T en="Translation" ru="Перевод" /></div>
         <div class="transl-list" style="margin-top:6px">
           <a class="transl-item active" href="#">
-            <span class="transl-name">{passage.translator}</span>
-            <span class="transl-year">{passage.language === 'en' ? '1862 · Victorian plain style' : '1914 · Академический русский'}</span>
+            <span class="transl-name">
+              <span data-i18n="en">George Long</span>
+              <span data-i18n="ru">Семён Роговин</span>
+            </span>
+            <span class="transl-year">
+              <span data-i18n="en">1862 · Victorian plain style</span>
+              <span data-i18n="ru">1914 · Академический русский</span>
+            </span>
           </a>
         </div>
         <div class="divider"></div>
-        <div class="label">Shortcut</div>
+        <div class="label"><T en="Shortcut" ru="Подсказка" /></div>
         <div style="font-family:var(--mono);font-size:11px;color:var(--text-mute);line-height:1.8;margin-top:4px">
-          <div>← earlier</div>
-          <div>→ later</div>
+          <div>← <T en="earlier" ru="предыдущий" /></div>
+          <div>→ <T en="later" ru="следующий" /></div>
         </div>
       </aside>
     </div>
   </Shell>
 </Layout>
-
-<style>
-.fn-sup {
-  font-family: var(--sans);
-  font-size: 0.58em;
-  font-weight: 600;
-  vertical-align: super;
-  line-height: 1;
-  color: var(--rubric);
-  padding: 0 2px;
-}
-</style>

@@ -1,0 +1,24 @@
+---
+/**
+ * T — inline dual-render translation helper.
+ *
+ * Renders both EN and RU strings; CSS hides whichever is not active
+ * via `html[data-lang="..."] [data-i18n="..."] { display: none }`.
+ *
+ * Usage:
+ *   <T en="Read" ru="Читать" />
+ *   <T en="Book" ru="Книга" /> {bookNum}
+ *
+ * For block content use the named slot variants instead, or wrap
+ * separate elements with `data-i18n="en|ru"` attributes directly.
+ */
+interface Props {
+  en: string;
+  ru: string;
+  /** When true, inserts a non-breaking space after each variant. */
+  nbsp?: boolean;
+}
+const { en, ru, nbsp = false } = Astro.props;
+const tail = nbsp ? ' ' : '';
+---
+<span data-i18n="en">{en}{tail}</span><span data-i18n="ru">{ru}{tail}</span>

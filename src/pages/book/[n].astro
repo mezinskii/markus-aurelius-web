@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Shell from '../../components/Shell';
+import T from '../../components/T.astro';
 import { getMeditationsBook } from '../../lib/sanity';
 import { BOOK_META, romanize } from '../../lib/ui';
 
@@ -10,7 +11,27 @@ export async function getStaticPaths() {
 
 const bookNum = parseInt(Astro.params.n as string, 10);
 const meta = BOOK_META.find(b => b.n === bookNum)!;
-const passages = await getMeditationsBook(bookNum, 'en');
+
+const [enPassages, ruPassages] = await Promise.all([
+  getMeditationsBook(bookNum, 'en'),
+  getMeditationsBook(bookNum, 'ru'),
+]);
+
+// Union of sections from both languages, ordered by numeric section
+const sectionMap = new Map<string, { en?: string; ru?: string }>();
+for (const p of enPassages) {
+  const entry = sectionMap.get(p.section) ?? {};
+  entry.en = p.text;
+  sectionMap.set(p.section, entry);
+}
+for (const p of ruPassages) {
+  const entry = sectionMap.get(p.section) ?? {};
+  entry.ru = p.text;
+  sectionMap.set(p.section, entry);
+}
+const rows = Array.from(sectionMap.entries())
+  .map(([section, texts]) => ({ section, ...texts }))
+  .sort((a, b) => parseInt(a.section, 10) - parseInt(b.section, 10));
 
 const prev = bookNum > 1 ? bookNum - 1 : null;
 const next = bookNum < 12 ? bookNum + 1 : null;
@@ -23,27 +44,38 @@ function stripFn(text: string) {
   <Shell route="book" client:load>
     <main class="wrap">
       <div class="crumbs">
-        <a href="/">Read</a>
+        <a href="/"><T en="Read" ru="Читать" /></a>
         <span class="sep">/</span>
-        <a href="/contents">Contents</a>
+        <a href="/contents"><T en="Contents" ru="Оглавление" /></a>
         <span class="sep">/</span>
-        <span>Book {romanize(bookNum)}</span>
+        <span><T en="Book" ru="Книга" /> {romanize(bookNum)}</span>
       </div>
 
       <div class="book-head">
         <div class="book-head-num">{romanize(bookNum)}</div>
         <div class="book-head-meta">
-          <div class="book-head-eyebrow">Book {bookNum} of Twelve · {passages.length} passages</div>
-          <h1 class="book-head-title">Book <em>{romanize(bookNum)}</em></h1>
-          <p class="book-head-note">{meta.note.en}</p>
+          <div class="book-head-eyebrow">
+            <span data-i18n="en">Book {bookNum} of Twelve · {enPassages.length} passages</span>
+            <span data-i18n="ru">Книга {bookNum} из двенадцати · {ruPassages.length} пассажей</span>
+          </div>
+          <h1 class="book-head-title">
+            <T en="Book" ru="Книга" /> <em>{romanize(bookNum)}</em>
+          </h1>
+          <p class="book-head-note">
+            <span data-i18n="en">{meta.note.en}</span>
+            <span data-i18n="ru">{meta.note.ru}</span>
+          </p>
         </div>
       </div>
 
       <div class="passages">
-        {passages.map(p => (
-          <a href={`/passage/${p.book}/${p.section}`} class="passage-row">
-            <div class="passage-row-ref">{romanize(p.book)}.{p.section}</div>
-            <p class="passage-row-text">{stripFn(p.text)}</p>
+        {rows.map(r => (
+          <a href={`/passage/${bookNum}/${r.section}`} class="passage-row">
+            <div class="passage-row-ref">{romanize(bookNum)}.{r.section}</div>
+            <p class="passage-row-text">
+              {r.en && <span data-i18n="en">{stripFn(r.en)}</span>}
+              {r.ru && <span data-i18n="ru">{stripFn(r.ru)}</span>}
+            </p>
             <span class="passage-row-arrow">→</span>
           </a>
         ))}
@@ -51,12 +83,30 @@ function stripFn(text: string) {
 
       <div class="book-nav">
         <a href={prev ? `/book/${prev}` : '#'} class={prev ? '' : 'disabled'} style={prev ? '' : 'opacity:.35;pointer-events:none'}>
-          <div class="eyebrow">← Previous book</div>
-          {prev && <h4><em>{romanize(prev)}</em> · {BOOK_META[prev - 1].note.en.slice(0, 48)}</h4>}
+          <div class="eyebrow">
+            <span data-i18n="en">← Previous book</span>
+            <span data-i18n="ru">← Предыдущая книга</span>
+          </div>
+          {prev && (
+            <h4>
+              <em>{romanize(prev)}</em> ·
+              <span data-i18n="en"> {BOOK_META[prev - 1].note.en.slice(0, 48)}</span>
+              <span data-i18n="ru"> {BOOK_META[prev - 1].note.ru.slice(0, 48)}</span>
+            </h4>
+          )}
         </a>
         <a href={next ? `/book/${next}` : '#'} class={`next${next ? '' : ' disabled'}`} style={next ? '' : 'opacity:.35;pointer-events:none'}>
-          <div class="eyebrow">Next book →</div>
-          {next && <h4><em>{romanize(next)}</em> · {BOOK_META[next - 1].note.en.slice(0, 48)}</h4>}
+          <div class="eyebrow">
+            <span data-i18n="en">Next book →</span>
+            <span data-i18n="ru">Следующая книга →</span>
+          </div>
+          {next && (
+            <h4>
+              <em>{romanize(next)}</em> ·
+              <span data-i18n="en"> {BOOK_META[next - 1].note.en.slice(0, 48)}</span>
+              <span data-i18n="ru"> {BOOK_META[next - 1].note.ru.slice(0, 48)}</span>
+            </h4>
+          )}
         </a>
       </div>
     </main>

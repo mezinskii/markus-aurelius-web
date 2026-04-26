@@ -4,15 +4,45 @@ import { UI, type Lang } from '../lib/ui';
 interface Props {
   book: number;
   section: string;
-  text: string;
+  /** Plain English text (with footnote markers); copy/share use this when lang=en */
+  textEn?: string;
+  /** Plain Russian text; copy/share use this when lang=ru */
+  textRu?: string;
+  /** Legacy single-text prop, used as fallback for both languages */
+  text?: string;
   passageId: string;
-  lang: Lang;
+  /** Initial language; runtime preference is read from localStorage on mount. */
+  lang?: Lang;
 }
 
-export default function PassageTools({ book, section, text, passageId, lang }: Props) {
-  const t = UI[lang];
+export default function PassageTools({ book, section, textEn, textRu, text, passageId, lang: initialLang = 'en' }: Props) {
+  const [lang, setLang] = useState<Lang>(initialLang);
   const [readSize, setReadSize] = useState(1.185);
   const [flash, setFlash] = useState<string | null>(null);
+
+  useEffect(() => {
+    const stored = (localStorage.getItem('lang') as Lang) || initialLang;
+    setLang(stored);
+    const onStorage = () => setLang((localStorage.getItem('lang') as Lang) || initialLang);
+    window.addEventListener('storage', onStorage);
+    // also poll on focus, in case toggle happened in this tab via Shell
+    const onFocus = onStorage;
+    window.addEventListener('focus', onFocus);
+    // observe data-lang attribute changes (Shell sets this on toggle)
+    const obs = new MutationObserver(() => {
+      const dl = document.documentElement.getAttribute('data-lang') as Lang | null;
+      if (dl) setLang(dl);
+    });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-lang'] });
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', onFocus);
+      obs.disconnect();
+    };
+  }, [initialLang]);
+
+  const t = UI[lang];
+  const currentText = lang === 'ru' ? (textRu || text || '') : (textEn || text || '');
 
   useEffect(() => {
     const s = parseFloat(localStorage.getItem('readSize') || '1.185');
@@ -24,27 +54,30 @@ export default function PassageTools({ book, section, text, passageId, lang }: P
     document.documentElement.style.setProperty('--read-size', `${readSize}rem`);
   }, [readSize]);
 
-  // Arrow key navigation
+  // Arrow key navigation — pick the visible (i.e. current language) link
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === 'ArrowLeft') {
-        const prev = document.querySelector<HTMLAnchorElement>('.passage-nav a:first-child:not(.disabled)');
-        if (prev) { e.preventDefault(); window.location.href = prev.href; }
-      }
-      if (e.key === 'ArrowRight') {
-        const next = document.querySelector<HTMLAnchorElement>('.passage-nav a.next:not(.disabled)');
-        if (next) { e.preventDefault(); window.location.href = next.href; }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const dir = e.key === 'ArrowLeft' ? 'first-child' : 'last-child';
+        // Prefer language-tagged variants over generic; CSS handles visibility.
+        const selector = `.passage-nav a[data-i18n="${lang}"]:not(.disabled)`;
+        const links = document.querySelectorAll<HTMLAnchorElement>(selector);
+        const target = e.key === 'ArrowLeft' ? links[0] : links[links.length - 1];
+        if (target) { e.preventDefault(); window.location.href = target.href; }
       }
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
-  }, []);
+  }, [lang]);
 
   const flashMsg = (msg: string) => { setFlash(msg); setTimeout(() => setFlash(null), 1400); };
 
+  const cleanText = (s: string) => s.replace(/\{\{fn:\d+\}\}/g, '').replace(/\[\d+\]/g, '');
+
   const copyText = async () => {
-    const body = `Meditations — Book ${book}.${section}\n\n${text.replace(/\{\{fn:\d+\}\}/g, '').replace(/\[\d+\]/g, '')}`;
+    const title = lang === 'ru' ? `Размышления — Книга ${book}.${section}` : `Meditations — Book ${book}.${section}`;
+    const body = `${title}\n\n${cleanText(currentText)}`;
     try { await navigator.clipboard.writeText(body); } catch {}
     flashMsg(t.tools_copied);
   };
@@ -57,7 +90,11 @@ export default function PassageTools({ book, section, text, passageId, lang }: P
   const share = async () => {
     if (navigator.share) {
       try {
-        await navigator.share({ title: `Meditations ${book}.${section}`, text: text.replace(/\{\{fn:\d+\}\}/g, '').replace(/\[\d+\]/g, ''), url: window.location.href });
+        await navigator.share({
+          title: lang === 'ru' ? `Размышления ${book}.${section}` : `Meditations ${book}.${section}`,
+          text: cleanText(currentText),
+          url: window.location.href,
+        });
         return;
       } catch {}
     }

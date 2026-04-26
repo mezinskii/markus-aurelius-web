@@ -2,55 +2,91 @@
 import Layout from '../layouts/Layout.astro';
 import Shell from '../components/Shell';
 import RandomPassage from '../components/RandomPassage';
+import T from '../components/T.astro';
 import { getAllMeditationsPassages } from '../lib/sanity';
 import { BOOK_META, romanize } from '../lib/ui';
 
-const passages = await getAllMeditationsPassages('en');
-const passagesData = passages.map(p => ({
-  book: p.book,
-  section: p.section,
-  text: p.text,
-  translator: p.translator,
-}));
+const [enPassages, ruPassages] = await Promise.all([
+  getAllMeditationsPassages('en'),
+  getAllMeditationsPassages('ru'),
+]);
+
+const enData = enPassages.map(p => ({ book: p.book, section: p.section, text: p.text, translator: p.translator }));
+const ruData = ruPassages.map(p => ({ book: p.book, section: p.section, text: p.text, translator: p.translator }));
 ---
 <Layout title="Meditations — Marcus Aurelius">
   <Shell route="home" client:load>
     <main class="wrap">
       <section class="home-hero">
         <div>
-          <div class="home-eyebrow">Marcus Aurelius · 121–180 CE · written in Greek</div>
+          <div class="home-eyebrow">
+            <span data-i18n="en">Marcus Aurelius · 121–180 CE · written in Greek</span>
+            <span data-i18n="ru">Марк Аврелий · 121–180 гг. · на греческом</span>
+          </div>
           <h1 class="home-title">
-            Meditations<br /><em>for one reader</em>
+            <span data-i18n="en">Meditations<br /><em>for one reader</em></span>
+            <span data-i18n="ru">Размышления<br /><em>наедине с собой</em></span>
           </h1>
           <p class="home-sub">
-            The private notebook of a Roman emperor, read as he wrote it — slowly, out of order,
-            and without commentary. Twelve books, every passage a direct link.
+            <span data-i18n="en">The private notebook of a Roman emperor, read as he wrote it — slowly, out of order,
+            and without commentary. Twelve books, every passage a direct link.</span>
+            <span data-i18n="ru">Частная записная книжка римского императора — так, как он её и писал: медленно,
+            не по порядку, без комментариев. Двенадцать книг, прямая ссылка на каждый пассаж.</span>
           </p>
           <div class="home-meta">
-            <div>Title<strong>Τὰ εἰς ἑαυτόν</strong></div>
-            <div>Composed<strong>c. 170–180 CE</strong></div>
-            <div>Books<strong>Twelve</strong></div>
-            <div>Translator<strong>George Long, 1862</strong></div>
+            <div><T en="Title" ru="Название" /><strong>Τὰ εἰς ἑαυτόν</strong></div>
+            <div>
+              <T en="Composed" ru="Время" />
+              <strong>
+                <span data-i18n="en">c. 170–180 CE</span>
+                <span data-i18n="ru">ок. 170–180 гг.</span>
+              </strong>
+            </div>
+            <div>
+              <T en="Books" ru="Книг" />
+              <strong>
+                <span data-i18n="en">Twelve</span>
+                <span data-i18n="ru">Двенадцать</span>
+              </strong>
+            </div>
+            <div>
+              <T en="Translator" ru="Переводчик" />
+              <strong>
+                <span data-i18n="en">George Long, 1862</span>
+                <span data-i18n="ru">С. Роговин, 1914</span>
+              </strong>
+            </div>
           </div>
         </div>
 
-        <RandomPassage passages={passagesData} lang="en" client:load />
+        <div data-i18n="en"><RandomPassage passages={enData} lang="en" client:load /></div>
+        <div data-i18n="ru"><RandomPassage passages={ruData} lang="ru" client:load /></div>
       </section>
 
       <section>
         <div class="books-section-head">
-          <h2>The twelve books <em>487 passages</em></h2>
+          <h2>
+            <span data-i18n="en">The twelve books <em>487 passages</em></span>
+            <span data-i18n="ru">Двенадцать книг <em>487 пассажей</em></span>
+          </h2>
           <a href="/contents" style="font-family:var(--sans);font-size:13px;color:var(--text-soft);border-bottom:1px solid var(--rule);">
-            Contents →
+            <T en="Contents →" ru="Оглавление →" />
           </a>
         </div>
         <div class="books-grid">
           {BOOK_META.map(b => (
             <a href={`/book/${b.n}`} class="book-tile">
               <div class="book-tile-num">{romanize(b.n)}</div>
-              <div class="book-tile-label">Book {b.n}</div>
-              <p class="book-tile-quote">"{b.quote.en}"</p>
-              <div class="book-tile-count">{b.count} passages</div>
+              <div class="book-tile-label">
+                <T en="Book" ru="Книга" /> {b.n}
+              </div>
+              <p class="book-tile-quote">
+                <span data-i18n="en">«{b.quote.en}»</span>
+                <span data-i18n="ru">«{b.quote.ru}»</span>
+              </p>
+              <div class="book-tile-count">
+                {b.count} <T en="passages" ru="пассажей" />
+              </div>
             </a>
           ))}
         </div>

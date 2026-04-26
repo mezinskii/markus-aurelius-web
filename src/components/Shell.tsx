@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { UI, type Lang } from '../lib/ui';
 
 interface Props {
@@ -11,6 +11,7 @@ export default function Shell({ route, children }: Props) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [searchOpen, setSearchOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [footnote, setFootnote] = useState<{ key: string; text: string; rect: DOMRect } | null>(null);
 
   useEffect(() => {
     const l = (localStorage.getItem('lang') as Lang) || 'en';
@@ -18,12 +19,16 @@ export default function Shell({ route, children }: Props) {
     setLang(l);
     setTheme(t);
     document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.setAttribute('data-lang', l);
+    document.documentElement.setAttribute('lang', l);
   }, []);
 
   const toggleLang = () => {
     const next = lang === 'en' ? 'ru' : 'en';
     setLang(next);
     localStorage.setItem('lang', next);
+    document.documentElement.setAttribute('data-lang', next);
+    document.documentElement.setAttribute('lang', next);
   };
 
   const toggleTheme = () => {
@@ -44,10 +49,40 @@ export default function Shell({ route, children }: Props) {
       if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
         e.preventDefault(); setSearchOpen(true);
       }
-      if (e.key === 'Escape') setSearchOpen(false);
+      if (e.key === 'Escape') { setSearchOpen(false); setFootnote(null); }
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
+  }, []);
+
+  // Global footnote popover: any <sup class="fn-sup" data-fn-text="..."> opens a popover
+  useEffect(() => {
+    const openFromElement = (el: HTMLElement) => {
+      const text = el.getAttribute('data-fn-text') || '';
+      const key = el.getAttribute('data-fn-key') || '';
+      if (!text) return;
+      setFootnote({ key, text, rect: el.getBoundingClientRect() });
+    };
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      const sup = target?.closest?.('.fn-sup[data-fn-text]') as HTMLElement | null;
+      if (sup) { e.preventDefault(); openFromElement(sup); return; }
+      if (target && !target.closest('.fn-pop')) setFootnote(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && el.classList.contains('fn-sup') && el.hasAttribute('data-fn-text')) {
+        e.preventDefault();
+        openFromElement(el);
+      }
+    };
+    document.addEventListener('click', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('click', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   return (
@@ -104,8 +139,76 @@ export default function Shell({ route, children }: Props) {
         />
       )}
 
+      {footnote && (
+        <FootnotePopover
+          fnKey={footnote.key}
+          text={footnote.text}
+          anchorRect={footnote.rect}
+          onClose={() => setFootnote(null)}
+        />
+      )}
+
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </>
+  );
+}
+
+// ─── Footnote popover ──────────────────────────────────────────────────────────
+
+function FootnotePopover({ fnKey, text, anchorRect, onClose }: {
+  fnKey: string; text: string; anchorRect: DOMRect; onClose: () => void;
+}) {
+  const [pos, setPos] = useState<{ top: number; left: number; placement: 'below' | 'above' }>({
+    top: -9999, left: -9999, placement: 'below',
+  });
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const padding = 12;
+    const width = Math.min(340, window.innerWidth - padding * 2);
+    el.style.width = `${width}px`;
+    const rect = el.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - anchorRect.bottom;
+    const placement = spaceBelow > rect.height + 16 ? 'below' : 'above';
+    const top = placement === 'below'
+      ? anchorRect.bottom + 8
+      : Math.max(padding, anchorRect.top - rect.height - 8);
+    const idealLeft = anchorRect.left - 12;
+    const left = Math.min(
+      Math.max(padding, idealLeft),
+      window.innerWidth - width - padding,
+    );
+    setPos({ top, left, placement });
+  }, [anchorRect, text]);
+
+  useEffect(() => {
+    const onScroll = () => onClose();
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll, { capture: true } as any);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      className="fn-pop"
+      role="dialog"
+      aria-label={`Footnote ${fnKey}`}
+      style={{ top: pos.top, left: pos.left }}
+      data-placement={pos.placement}
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="fn-pop-head">
+        <span className="fn-pop-key">{fnKey}</span>
+        <button className="fn-pop-close" onClick={onClose} aria-label="Close">×</button>
+      </div>
+      <div className="fn-pop-body">{text}</div>
+    </div>
   );
 }
 

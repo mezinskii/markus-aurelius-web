@@ -1,61 +1,84 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Shell from '../components/Shell';
+import T from '../components/T.astro';
 import { getAllSayings } from '../lib/sanity';
 import { romanize } from '../lib/ui';
+import { renderWithFootnotes } from '../lib/footnotes';
 
 const sayings = await getAllSayings();
-
-function renderText(text: string): string {
-  return text
-    .replace(/\{\{fn:(\d+)\}\}/g, '<sup class="fn-sup">$1</sup>')
-    .replace(/\[(\d+)\]/g, '<sup class="fn-sup">$1</sup>');
-}
-
-function stripMarkers(text: string): string {
-  return text.replace(/\{\{fn:\d+\}\}/g, '').replace(/\[\d+\]/g, '');
-}
 ---
 <Layout title="Sayings of Marcus Aurelius">
   <Shell route="sayings" client:load>
     <main class="wrap">
 
       <div class="crumbs">
-        <a href="/">Read</a>
+        <a href="/"><T en="Read" ru="Читать" /></a>
         <span class="sep">/</span>
-        <span>Sayings</span>
+        <span><T en="Sayings" ru="Изречения" /></span>
       </div>
 
       <div class="book-head" style="grid-template-columns:auto 1fr">
         <div class="book-head-num" style="font-size:clamp(48px,7vw,120px)">{romanize(sayings.length)}</div>
         <div class="book-head-meta">
-          <div class="book-head-eyebrow">Marcus Aurelius · recorded by ancient biographers · not from the <em>Meditations</em></div>
-          <h1 class="book-head-title">The <em>Sayings</em></h1>
+          <div class="book-head-eyebrow">
+            <span data-i18n="en">Marcus Aurelius · recorded by ancient biographers · not from the <em>Meditations</em></span>
+            <span data-i18n="ru">Марк Аврелий · записано древними биографами · не из <em>Размышлений</em></span>
+          </div>
+          <h1 class="book-head-title">
+            <span data-i18n="en">The <em>Sayings</em></span>
+            <span data-i18n="ru"><em>Изречения</em></span>
+          </h1>
           <p class="book-head-note">
-            {sayings.length} short fragments preserved by Dio Cassius, the <em>Historia Augusta</em>, and
-            others — remarks overheard at council, the sickbed, the battlefield. Collected in the Loeb
-            Appendix (Haines, 1916).
+            <span data-i18n="en">
+              {sayings.length} short fragments preserved by Dio Cassius, the <em>Historia Augusta</em>, and
+              others — remarks overheard at council, the sickbed, the battlefield. Collected in the Loeb
+              Appendix (Haines, 1916).
+            </span>
+            <span data-i18n="ru">
+              {sayings.length} коротких фрагментов, сохранённых Дионом Кассием, <em>Historia Augusta</em> и
+              другими — реплики, подслушанные в совете, у одра болезни, на поле боя. Собраны в приложении
+              к Loeb (Хайнс, 1916).
+            </span>
           </p>
         </div>
       </div>
 
       <div class="home-meta" style="margin-bottom:56px;padding-top:24px;border-top:1px solid var(--rule)">
-        <div>Count<strong>{sayings.length}</strong></div>
-        <div>Translator<strong>C. R. Haines, 1916</strong></div>
-        <div>Sources<strong>Dio · Capitolinus</strong></div>
-        <div>Rights<strong>Public domain</strong></div>
+        <div><T en="Count" ru="Число" /><strong>{sayings.length}</strong></div>
+        <div><T en="Translator" ru="Переводчик" /><strong>C. R. Haines, 1916</strong></div>
+        <div>
+          <T en="Sources" ru="Источники" />
+          <strong>
+            <span data-i18n="en">Dio · Capitolinus</span>
+            <span data-i18n="ru">Дион · Капитолин</span>
+          </strong>
+        </div>
+        <div>
+          <T en="Rights" ru="Права" />
+          <strong>
+            <span data-i18n="en">Public domain</span>
+            <span data-i18n="ru">Public domain</span>
+          </strong>
+        </div>
       </div>
 
       <div style="max-width:var(--measure);margin-bottom:56px">
         <p style="font-family:var(--serif);font-size:17px;line-height:1.65;color:var(--text-soft);margin:0 0 1em">
-          These are not from the <em>Meditations</em>. They survive as anecdote: overheard by a
+          <span data-i18n="en">These are not from the <em>Meditations</em>. They survive as anecdote: overheard by a
           courtier, copied into a history, remembered by a biographer. Brief, uneven, sometimes
-          apocryphal — but closer to a voice in a room than the pages Marcus wrote to himself at night.
+          apocryphal — but closer to a voice in a room than the pages Marcus wrote to himself at night.</span>
+          <span data-i18n="ru">Это не из <em>Размышлений</em>. Они дошли как анекдот: подслушано придворным,
+          переписано в историю, запомнено биографом. Кратко, неровно, иногда апокрифично — но ближе к живому
+          голосу в комнате, чем страницы, которые Марк писал себе по ночам.</span>
         </p>
       </div>
 
       <div class="books-section-head">
-        <h2>All {sayings.length} sayings <em style="font-size:18px;margin-left:10px">in order</em></h2>
+        <h2>
+          <span data-i18n="en">All {sayings.length} sayings <em style="font-size:18px;margin-left:10px">in order</em></span>
+          <span data-i18n="ru">Все {sayings.length} изречений <em style="font-size:18px;margin-left:10px">по порядку</em></span>
+        </h2>
       </div>
 
       <div class="sayings-list">
@@ -63,7 +86,7 @@ function stripMarkers(text: string): string {
           <article class="saying-card" id={`s${s.order}`}>
             <div class="saying-card-num">{String(s.order).padStart(2, '0')}</div>
             <div class="saying-card-body">
-              <p class="saying-card-text" set:html={renderText(s.text)} />
+              <p class="saying-card-text" set:html={renderWithFootnotes(s.text, s.footnotes)} />
               <div class="saying-card-meta">
                 <span class="saying-card-source">— {s.source}</span>
                 <a class="saying-card-anchor" href={`#s${s.order}`} aria-label={`Permalink to saying ${s.order}`}>#</a>
@@ -84,23 +107,15 @@ function stripMarkers(text: string): string {
       </div>
 
       <div style="margin-top:56px;padding-top:32px;border-top:1px solid var(--rule);font-family:var(--sans);font-size:13px;color:var(--text-soft)">
-        <a href="/" style="border-bottom:1px solid var(--rule)">← Back to Meditations</a>
+        <a href="/" style="border-bottom:1px solid var(--rule)">
+          <T en="← Back to Meditations" ru="← Назад к Размышлениям" />
+        </a>
       </div>
     </main>
   </Shell>
 </Layout>
 
 <style>
-.fn-sup {
-  font-family: var(--sans);
-  font-size: 0.58em;
-  font-weight: 600;
-  vertical-align: super;
-  line-height: 1;
-  color: var(--rubric);
-  padding: 0 2px;
-}
-
 .sayings-list {
   display: flex;
   flex-direction: column;
