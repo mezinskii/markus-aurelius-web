@@ -1,0 +1,56 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../Shell';
+import { BOOK_META, romanize, UI, type Lang } from '../../lib/ui';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = UI[lang];
+
+const langPrefix = lang === 'ru' ? '/ru' : '';
+const pathname = `${langPrefix}/contents`;
+
+const title = lang === 'ru'
+  ? 'Оглавление — Размышления'
+  : 'Contents — Meditations';
+const description = lang === 'ru'
+  ? 'Двенадцать книг «Размышлений» Марка Аврелия. 487 пассажей в переводе Семёна Роговина.'
+  : 'The twelve books of Marcus Aurelius\'s Meditations. 487 passages in George Long\'s translation.';
+---
+<Layout title={title} description={description} lang={lang} basePath="/contents">
+  <Shell route="contents" lang={lang} pathname={pathname} client:load>
+    <main class="wrap">
+      <div class="crumbs">
+        <a href={langPrefix || '/'}>{t.read}</a>
+        <span class="sep">/</span>
+        <span>{t.contents}</span>
+      </div>
+
+      <div class="book-head">
+        <div class="book-head-num">XII</div>
+        <div class="book-head-meta">
+          <div class="book-head-eyebrow">{t.home_eyebrow}</div>
+          <h1 class="book-head-title">
+            {t.contents_heading} <em>— {t.contents_sub}</em>
+          </h1>
+          <p class="book-head-note">
+            {lang === 'ru'
+              ? 'Каждая книга — отдельная записная тетрадь. Читайте по порядку или открывайте ту главу, которая зовёт вас сегодня, — обязательного пути здесь нет.'
+              : 'Each book is a standalone notebook. Read them in order, or open whichever chapter calls to you today — there is no prescribed path.'}
+          </p>
+        </div>
+      </div>
+
+      <div class="books-grid">
+        {BOOK_META.map(b => (
+          <a href={`${langPrefix}/book/${b.n}`} class="book-tile">
+            <div class="book-tile-num">{romanize(b.n)}</div>
+            <div class="book-tile-label">{lang === 'ru' ? 'Книга' : 'Book'} {b.n}</div>
+            <p class="book-tile-quote">«{b.quote[lang]}»</p>
+            <div class="book-tile-count">{b.count} {lang === 'ru' ? 'пассажей' : 'passages'}</div>
+          </a>
+        ))}
+      </div>
+    </main>
+  </Shell>
+</Layout>

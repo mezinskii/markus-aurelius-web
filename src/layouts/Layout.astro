@@ -2,17 +2,52 @@
 import Analytics from "@vercel/analytics/astro";
 export interface Props {
   title?: string;
+  description?: string;
   lang?: "en" | "ru";
+  /** Path on this language for hreflang alternate, e.g. "/book/3" or "/contents". */
+  basePath?: string;
 }
-const { title = "Meditations — Marcus Aurelius", lang = "en" } = Astro.props;
----
+const SITE_ORIGIN = "https://meditations.example"; // TODO: replace with real domain
+const {
+  title = "Meditations — Marcus Aurelius",
+  description = "The private notebook of a Roman emperor — twelve books, every passage a direct link.",
+  lang = "en",
+  basePath,
+} = Astro.props;
 
+// Compute hreflang URLs
+const path = basePath ?? Astro.url.pathname;
+const stripped = path.replace(/^\/ru(?=\/|$)/, "") || "/";
+const enUrl = SITE_ORIGIN + stripped;
+const ruUrl = SITE_ORIGIN + (stripped === "/" ? "/ru" : "/ru" + stripped);
+---
 <!doctype html>
-<html lang={lang} data-lang={lang}>
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
+    <meta name="description" content={description} />
+
+    {/* hreflang alternates */}
+    <link rel="alternate" hreflang="en" href={enUrl} />
+    <link rel="alternate" hreflang="ru" href={ruUrl} />
+    <link rel="alternate" hreflang="x-default" href={enUrl} />
+
+    {/* Open Graph */}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:locale" content={lang === "ru" ? "ru_RU" : "en_US"} />
+    <meta property="og:locale:alternate" content={lang === "ru" ? "en_US" : "ru_RU"} />
+    <meta property="og:url" content={lang === "ru" ? ruUrl : enUrl} />
+    <meta property="og:image" content={SITE_ORIGIN + "/android-chrome-512x512.png"} />
+
+    {/* Twitter */}
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -32,17 +67,12 @@ const { title = "Meditations — Marcus Aurelius", lang = "en" } = Astro.props;
       <slot />
     </div>
     <script is:inline>
-      // Restore theme + language from localStorage to avoid flash
+      // Restore theme from localStorage to avoid flash
       try {
         const t = localStorage.getItem("theme");
         if (t === "dark")
           document.documentElement.setAttribute("data-theme", "dark");
-        const l = localStorage.getItem("lang");
-        document.documentElement.setAttribute("data-lang", l === "ru" ? "ru" : "en");
-        if (l === "ru") document.documentElement.setAttribute("lang", "ru");
-      } catch {
-        document.documentElement.setAttribute("data-lang", "en");
-      }
+      } catch {}
     </script>
     <Analytics />
   </body>

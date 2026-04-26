@@ -1,0 +1,94 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../Shell';
+import { getFrontoLetterNumbers } from '../../lib/sanity';
+import { UI, type Lang } from '../../lib/ui';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = UI[lang];
+
+const letterCount = (await getFrontoLetterNumbers()).length;
+const langPrefix = lang === 'ru' ? '/ru' : '';
+const pathname = `${langPrefix}/about`;
+
+const title = lang === 'ru'
+  ? 'О проекте — Размышления'
+  : 'About — Meditations';
+const description = lang === 'ru'
+  ? 'Тихий читатель «Размышлений» Марка Аврелия. 487 пассажей в двух переводах из public domain — с индексом, поиском и прямой ссылкой на каждый пассаж.'
+  : 'A quiet reader for Marcus Aurelius\'s Meditations. 487 passages in two public-domain translations, indexed, searchable, linkable.';
+---
+<Layout title={title} description={description} lang={lang} basePath="/about">
+  <Shell route="about" lang={lang} pathname={pathname} client:load>
+    <main class="wrap">
+      <div class="crumbs">
+        <a href={langPrefix || '/'}>{t.read}</a>
+        <span class="sep">/</span>
+        <span>{t.about}</span>
+      </div>
+
+      <section class="about-hero">
+        <div class="about-portrait">
+          <img src="/markus.png" alt={lang === 'ru' ? 'Марк Аврелий — римский мраморный бюст' : 'Marcus Aurelius — Roman marble bust'} />
+        </div>
+        <div class="about-bio">
+          <div class="eyebrow" style="margin-bottom:18px">{t.home_eyebrow}</div>
+          <h1 class="about-bio-head" set:html={`${t.about_head_1} <em>${t.about_head_2}</em>`} />
+          <p>{t.about_p1}</p>
+          <p>{t.about_p2}</p>
+          <p>
+            {lang === 'ru' ? <>
+              Раздел <a href={`${langPrefix}/fronto`} style="color:var(--ochre-deep);border-bottom:1px solid currentColor">Переписка с Фронтоном</a>{' '}
+              добавляет {letterCount} сохранившихся писем между Марком и его учителем риторики
+              в переводе К. Р. Хайнса (Loeb). Русского перевода писем пока нет.
+            </> : <>
+              The <a href={`${langPrefix}/fronto`} style="color:var(--ochre-deep);border-bottom:1px solid currentColor">Letters to Fronto</a>{' '}
+              section adds {letterCount} surviving letters between Marcus and his rhetoric teacher,
+              in C. R. Haines's Loeb translation.
+            </>}
+          </p>
+        </div>
+      </section>
+
+      <section class="about-grid">
+        <div class="about-cell">
+          <div class="eyebrow">01</div>
+          <h3>{t.about_cell_1_t}</h3>
+          <p>{t.about_cell_1_p}</p>
+        </div>
+        <div class="about-cell">
+          <div class="eyebrow">02</div>
+          <h3>{t.about_cell_2_t}</h3>
+          <p>{t.about_cell_2_p}</p>
+        </div>
+        <div class="about-cell">
+          <div class="eyebrow">03</div>
+          <h3>{t.about_cell_3_t}</h3>
+          <p>{t.about_cell_3_p}</p>
+        </div>
+      </section>
+
+      <section class="about-translators">
+        <div class="transl-col">
+          <h4>{lang === 'ru' ? 'Переводчики Размышлений' : 'Meditations translators'}</h4>
+          <div class="transl-entry">
+            <span class="name">George Long</span>
+            <span class="yr">1862 · public domain</span>
+          </div>
+          <div class="transl-entry">
+            <span class="name">Семён Роговин</span>
+            <span class="yr">1914 · public domain</span>
+          </div>
+        </div>
+        <div class="transl-col">
+          <h4>{lang === 'ru' ? 'Переводчик писем' : 'Letters translator'}</h4>
+          <div class="transl-entry">
+            <span class="name">C. R. Haines</span>
+            <span class="yr">1919 · public domain</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </Shell>
+</Layout>

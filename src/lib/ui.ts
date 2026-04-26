@@ -103,7 +103,7 @@ export const UI = {
     site_title: 'Наедине с собой — Марк Аврелий',
     read: 'Читать',
     contents: 'Оглавление',
-    about: 'О книге',
+    about: 'О проекте',
     fronto: 'Письма',
     sayings: 'Изречения',
     search: 'Поиск',

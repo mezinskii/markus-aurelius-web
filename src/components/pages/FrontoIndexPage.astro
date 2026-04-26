@@ -1,0 +1,119 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../Shell';
+import { getFrontoLettersIndex } from '../../lib/sanity';
+import { romanize, UI, type Lang } from '../../lib/ui';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = UI[lang];
+
+const letters = await getFrontoLettersIndex();
+const langPrefix = lang === 'ru' ? '/ru' : '';
+const pathname = `${langPrefix}/fronto`;
+
+function stripFn(text: string) {
+  return text.replace(/\{\{fn:\d+\}\}/g, '').replace(/\[\d+\]/g, '');
+}
+
+const title = lang === 'ru'
+  ? 'Письма — Фронтон и Марк Аврелий'
+  : 'Letters — Fronto & Marcus Aurelius';
+const description = lang === 'ru'
+  ? `${letters.length} писем и фрагментов между Марком Аврелием и его учителем риторики Марком Корнелием Фронтоном. Перевод К. Р. Хайнса.`
+  : `${letters.length} letters between Marcus Aurelius and his rhetoric teacher Marcus Cornelius Fronto. C. R. Haines translation.`;
+---
+<Layout title={title} description={description} lang={lang} basePath="/fronto">
+  <Shell route="fronto" lang={lang} pathname={pathname} client:load>
+    <main class="wrap">
+      <div class="crumbs">
+        <a href={langPrefix || '/'}>{t.read}</a>
+        <span class="sep">/</span>
+        <span>{t.fronto}</span>
+      </div>
+
+      <div class="book-head" style="grid-template-columns:auto 1fr">
+        <div class="book-head-num" style="font-size:clamp(48px,7vw,120px)">CLIII</div>
+        <div class="book-head-meta">
+          <div class="book-head-eyebrow">
+            {lang === 'ru'
+              ? 'Марк Аврелий и Фронтон · ок. 138–166 гг.'
+              : 'Marcus Aurelius & Fronto · c. 138–166 CE'}
+          </div>
+          <h1 class="book-head-title">
+            {lang === 'ru' ? <>Переписка с <em>Фронтоном</em></> : <>The <em>Letters</em></>}
+          </h1>
+          <p class="book-head-note">
+            {lang === 'ru'
+              ? `${letters.length} писем и фрагментов между императором и его учителем риторики — тёплые, учёные, порой игривые. Перевод К. Р. Хайнса (Loeb Classical Library, 1919). Русского перевода пока нет — тексты ниже на английском.`
+              : `${letters.length} letters and fragments between the emperor and his rhetoric teacher — warm, learned, sometimes playful. C. R. Haines translation (Loeb Classical Library, 1919).`}
+          </p>
+        </div>
+      </div>
+
+      <div class="home-meta" style="margin-bottom:56px;padding-top:24px;border-top:1px solid var(--rule)">
+        <div>{lang === 'ru' ? 'Произведение' : 'Work'}<strong>Epistulae</strong></div>
+        <div>
+          {lang === 'ru' ? 'Писем' : 'Letters'}
+          <strong>{letters.length} {lang === 'ru' ? 'фрагментов' : 'sections'}</strong>
+        </div>
+        <div>
+          {lang === 'ru' ? 'Язык' : 'Language'}
+          <strong>{lang === 'ru' ? 'Латинский' : 'Latin'}</strong>
+        </div>
+        <div>
+          {lang === 'ru' ? 'Переводчик' : 'Translator'}
+          <strong>{lang === 'ru' ? 'К. Р. Хайнс, 1919' : 'C. R. Haines, 1919'}</strong>
+        </div>
+      </div>
+
+      <div style="max-width:var(--measure);margin-bottom:56px">
+        <p style="font-family:var(--serif);font-size:17px;line-height:1.65;color:var(--text-soft);margin:0 0 1em">
+          {lang === 'ru'
+            ? <>Марк Аврелий учился у Марка Корнелия Фронтона примерно с 138 года, когда ему было семнадцать,
+              до смерти Фронтона около 166 года. Их письма — большей частью сохранившиеся в палимпсесте,
+              вновь обнаруженном в библиотеках Ватикана и Милана в 1815 году, — показывают сторону Марка,
+              отсутствующую в <em>Размышлениях</em>: игривую, нежную, желающую угодить учителю.</>
+            : <>Marcus Aurelius studied under Marcus Cornelius Fronto from about 138 CE, when he was seventeen,
+              until Fronto's death around 166. Their letters — mostly preserved in a palimpsest rediscovered
+              in the Vatican and Milan libraries in 1815 — show a side of Marcus absent from
+              the <em>Meditations</em>: playful, affectionate, eager to please his teacher.</>}
+        </p>
+        <p style="font-family:var(--serif);font-size:17px;line-height:1.65;color:var(--text-soft);margin:0">
+          {lang === 'ru'
+            ? <>Письма сохранились во фрагментах, порой с лакунами. Издание Хайнса в серии Loeb заполняет
+              пробелы латынью и приводит греческие пассажи в транслитерации. То, что осталось, — интимная переписка:
+              учитель и ученик обсуждают риторику, обмениваются сплетнями, беспокоятся о здоровье друг друга.</>
+            : <>The letters survive in fragments, sometimes with lacunae. Haines's Loeb edition fills gaps with
+              Latin and prints the Greek passages transliterated. What remains is intimate: master and pupil
+              debating rhetoric, exchanging gossip, worrying about each other's health.</>}
+        </p>
+      </div>
+
+      <div class="books-section-head">
+        <h2>
+          {lang === 'ru' ? `Все ${letters.length} писем` : `All ${letters.length} letters`}
+          <em style="font-size:18px;margin-left:10px">{lang === 'ru' ? 'по порядку' : 'in order'}</em>
+        </h2>
+      </div>
+
+      <div class="passages">
+        {letters.map(l => (
+          <a href={`${langPrefix}/fronto/${l.letter}`} class="passage-row">
+            <div class="passage-row-ref" style="min-width:100px">
+              {lang === 'ru' ? 'Письмо' : 'Letter'} {romanize(l.letter)}
+            </div>
+            <div>
+              <div style="font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-mute);margin-bottom:4px">
+                {l.sender ?? '—'}
+                {l.addressee ? <> → {l.addressee}</> : ''}
+              </div>
+              <p class="passage-row-text">{stripFn(l.preview)}</p>
+            </div>
+            <span class="passage-row-arrow">→</span>
+          </a>
+        ))}
+      </div>
+    </main>
+  </Shell>
+</Layout>

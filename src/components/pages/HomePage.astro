@@ -1,0 +1,62 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../Shell';
+import RandomPassage from '../RandomPassage';
+import { getAllMeditationsPassages } from '../../lib/sanity';
+import { BOOK_META, romanize, UI, type Lang } from '../../lib/ui';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = UI[lang];
+
+const passages = await getAllMeditationsPassages(lang);
+const passagesData = passages.map(p => ({ book: p.book, section: p.section, text: p.text, translator: p.translator }));
+
+const langPrefix = lang === 'ru' ? '/ru' : '';
+const pathname = lang === 'ru' ? '/ru' : '/';
+
+const title = lang === 'ru'
+  ? 'Размышления — Марк Аврелий'
+  : 'Meditations — Marcus Aurelius';
+const description = t.home_sub;
+---
+<Layout title={title} description={description} lang={lang} basePath="/">
+  <Shell route="home" lang={lang} pathname={pathname} client:load>
+    <main class="wrap">
+      <section class="home-hero">
+        <div>
+          <div class="home-eyebrow">{t.home_eyebrow}</div>
+          <h1 class="home-title" set:html={`${t.home_title_1}<br /><em>${t.home_title_2}</em>`} />
+          <p class="home-sub">{t.home_sub}</p>
+          <div class="home-meta">
+            <div>{t.home_meta_1}<strong>{t.home_meta_1_v}</strong></div>
+            <div>{t.home_meta_2}<strong>{t.home_meta_2_v}</strong></div>
+            <div>{t.home_meta_3}<strong>{t.home_meta_3_v}</strong></div>
+            <div>{t.home_meta_4}<strong>{t.home_meta_4_v}</strong></div>
+          </div>
+        </div>
+
+        <RandomPassage passages={passagesData} lang={lang} client:load />
+      </section>
+
+      <section>
+        <div class="books-section-head">
+          <h2 set:html={`${t.contents_heading} <em>${t.contents_sub}</em>`} />
+          <a href={`${langPrefix}/contents`} style="font-family:var(--sans);font-size:13px;color:var(--text-soft);border-bottom:1px solid var(--rule);">
+            {t.contents} →
+          </a>
+        </div>
+        <div class="books-grid">
+          {BOOK_META.map(b => (
+            <a href={`${langPrefix}/book/${b.n}`} class="book-tile">
+              <div class="book-tile-num">{romanize(b.n)}</div>
+              <div class="book-tile-label">{lang === 'ru' ? 'Книга' : 'Book'} {b.n}</div>
+              <p class="book-tile-quote">«{b.quote[lang]}»</p>
+              <div class="book-tile-count">{b.count} {lang === 'ru' ? 'пассажей' : 'passages'}</div>
+            </a>
+          ))}
+        </div>
+      </section>
+    </main>
+  </Shell>
+</Layout>

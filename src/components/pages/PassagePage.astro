@@ -1,0 +1,152 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../Shell';
+import PassageTools from '../PassageTools';
+import { getMeditationsBook, type MeditationPassage } from '../../lib/sanity';
+import { BOOK_META, romanize, UI, type Lang } from '../../lib/ui';
+import { renderWithFootnotes } from '../../lib/footnotes';
+
+interface Props {
+  lang: Lang;
+  bookNum: number;
+  section: string;
+  passage: MeditationPassage;
+}
+const { lang, bookNum, section, passage } = Astro.props;
+const t = UI[lang];
+
+const meta = BOOK_META.find(b => b.n === bookNum)!;
+const langPrefix = lang === 'ru' ? '/ru' : '';
+const pathname = `${langPrefix}/passage/${bookNum}/${section}`;
+
+const bookPassages = await getMeditationsBook(bookNum, lang);
+const idx = bookPassages.findIndex(p => p.section === section);
+let prev = idx > 0 ? bookPassages[idx - 1] : null;
+let next = idx < bookPassages.length - 1 ? bookPassages[idx + 1] : null;
+
+if (!prev && bookNum > 1) {
+  const prevBook = await getMeditationsBook(bookNum - 1, lang);
+  prev = prevBook[prevBook.length - 1] ?? null;
+}
+if (!next && bookNum < 12) {
+  const nextBook = await getMeditationsBook(bookNum + 1, lang);
+  next = nextBook[0] ?? null;
+}
+
+const html = renderWithFootnotes(passage.text, passage.footnotes);
+const paragraphs = html.split(/\n\n+/).filter(Boolean);
+const firstPara = paragraphs[0] ?? '';
+const dropcap = firstPara[0] ?? '';
+const firstRest = firstPara.slice(1);
+const restParas = paragraphs.slice(1);
+
+const cleanText = (s: string) => s.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '');
+
+const title = lang === 'ru'
+  ? `${romanize(bookNum)}.${section} — Размышления`
+  : `${romanize(bookNum)}.${section} — Meditations`;
+const description = cleanText(passage.text).slice(0, 160) + (passage.text.length > 160 ? '…' : '');
+---
+<Layout title={title} description={description} lang={lang} basePath={`/passage/${bookNum}/${section}`}>
+  <Shell route="passage" lang={lang} pathname={pathname} client:load>
+    <div class="passage-screen">
+
+      <aside class="passage-side left">
+        <div class="crumbs" style="margin-bottom:24px;font-size:10px">
+          <a href={langPrefix || '/'}>{t.read}</a>
+          <span class="sep">/</span>
+          <a href={`${langPrefix}/book/${bookNum}`}>{lang === 'ru' ? 'Книга' : 'Book'} {romanize(bookNum)}</a>
+        </div>
+        <div class="label">{lang === 'ru' ? 'Книга' : 'Book'}</div>
+        <div class="value" style="margin-bottom:18px">
+          {romanize(bookNum)} <span style="color:var(--text-mute);font-style:normal;font-family:var(--mono);font-size:12px">— {bookNum}</span>
+        </div>
+        <div class="label">{t.page}</div>
+        <div class="value">
+          {section} <span style="font-family:var(--mono);font-size:11px;color:var(--text-mute);font-style:normal">/ {meta.count}</span>
+        </div>
+        <div class="divider"></div>
+        <a class="mini-cta" href={`${langPrefix}/book/${bookNum}`}>← {t.return_book} {romanize(bookNum)}</a>
+        <a class="mini-cta" href={`${langPrefix}/contents`}>{t.return_contents}</a>
+      </aside>
+
+      <div class="passage-main">
+        <div class="ref-line">
+          <span class="ref-book">{lang === 'ru' ? 'Книга' : 'Book'} {romanize(bookNum)}</span> · {section} · {passage.translator} ({passage.language === 'en' ? '1862' : '1914'})
+        </div>
+        <h1 class="passage-section">{section}.</h1>
+
+        <div class="passage-body">
+          <p>
+            <span class="dropcap">{dropcap}</span>
+            <span set:html={firstRest} />
+          </p>
+          {restParas.map(para => <p set:html={para} />)}
+        </div>
+
+        {passage.footnotes && passage.footnotes.length > 0 && (
+          <div class="footnotes" style="margin-top:32px;padding-top:20px;border-top:1px solid var(--rule)">
+            {passage.footnotes.map(fn => (
+              <div style="font-family:var(--serif);font-size:14px;line-height:1.55;color:var(--text-soft);margin-bottom:8px;display:flex;gap:10px">
+                <span style="font-family:var(--mono);font-size:11px;color:var(--rubric);flex-shrink:0;padding-top:2px">{fn.key}</span>
+                <span>{fn.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <PassageTools
+          book={bookNum}
+          section={section}
+          text={passage.text}
+          passageId={passage.passageId}
+          lang={lang}
+          client:load
+        />
+
+        <div class="passage-nav">
+          <a
+            href={prev ? `${langPrefix}/passage/${prev.book}/${prev.section}` : '#'}
+            class={prev ? '' : 'disabled'}
+            style={prev ? '' : 'opacity:.35;pointer-events:none'}
+          >
+            <div class="eyebrow">← {t.passage_prev}</div>
+            {prev && <>
+              <h5><em>{romanize(prev.book)}.{prev.section}</em></h5>
+              <p class="preview">{cleanText(prev.text).slice(0, 120)}…</p>
+            </>}
+          </a>
+          <a
+            href={next ? `${langPrefix}/passage/${next.book}/${next.section}` : '#'}
+            class={`next${next ? '' : ' disabled'}`}
+            style={next ? '' : 'opacity:.35;pointer-events:none'}
+          >
+            <div class="eyebrow">{t.passage_next} →</div>
+            {next && <>
+              <h5><em>{romanize(next.book)}.{next.section}</em></h5>
+              <p class="preview">{cleanText(next.text).slice(0, 120)}…</p>
+            </>}
+          </a>
+        </div>
+      </div>
+
+      <aside class="passage-side right">
+        <div class="label">{t.translation}</div>
+        <div class="transl-list" style="margin-top:6px">
+          <a class="transl-item active" href="#">
+            <span class="transl-name">{passage.translator}</span>
+            <span class="transl-year">
+              {passage.language === 'en' ? '1862 · Victorian plain style' : '1914 · Академический русский'}
+            </span>
+          </a>
+        </div>
+        <div class="divider"></div>
+        <div class="label">{lang === 'ru' ? 'Подсказка' : 'Shortcut'}</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text-mute);line-height:1.8;margin-top:4px">
+          <div>← {lang === 'ru' ? 'предыдущий' : 'earlier'}</div>
+          <div>→ {lang === 'ru' ? 'следующий' : 'later'}</div>
+        </div>
+      </aside>
+    </div>
+  </Shell>
+</Layout>

@@ -1,0 +1,85 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../Shell';
+import { getMeditationsBook } from '../../lib/sanity';
+import { BOOK_META, romanize, UI, type Lang } from '../../lib/ui';
+
+interface Props { lang: Lang; bookNum: number; }
+const { lang, bookNum } = Astro.props;
+const t = UI[lang];
+
+const meta = BOOK_META.find(b => b.n === bookNum)!;
+const passages = await getMeditationsBook(bookNum, lang);
+
+const langPrefix = lang === 'ru' ? '/ru' : '';
+const pathname = `${langPrefix}/book/${bookNum}`;
+
+const prev = bookNum > 1 ? bookNum - 1 : null;
+const next = bookNum < 12 ? bookNum + 1 : null;
+
+function stripFn(text: string) {
+  return text.replace(/\{\{fn:\d+\}\}/g, '').replace(/\[\d+\]/g, '');
+}
+
+const title = lang === 'ru'
+  ? `Книга ${romanize(bookNum)} — Размышления`
+  : `Book ${romanize(bookNum)} — Meditations`;
+const description = `${meta.note[lang]} ${passages.length} ${lang === 'ru' ? 'пассажей' : 'passages'}.`;
+---
+<Layout title={title} description={description} lang={lang} basePath={`/book/${bookNum}`}>
+  <Shell route="book" lang={lang} pathname={pathname} client:load>
+    <main class="wrap">
+      <div class="crumbs">
+        <a href={langPrefix || '/'}>{t.read}</a>
+        <span class="sep">/</span>
+        <a href={`${langPrefix}/contents`}>{t.contents}</a>
+        <span class="sep">/</span>
+        <span>{lang === 'ru' ? 'Книга' : 'Book'} {romanize(bookNum)}</span>
+      </div>
+
+      <div class="book-head">
+        <div class="book-head-num">{romanize(bookNum)}</div>
+        <div class="book-head-meta">
+          <div class="book-head-eyebrow">
+            {lang === 'ru'
+              ? `Книга ${bookNum} из двенадцати · ${passages.length} пассажей`
+              : `Book ${bookNum} of Twelve · ${passages.length} passages`}
+          </div>
+          <h1 class="book-head-title">
+            {lang === 'ru' ? 'Книга' : 'Book'} <em>{romanize(bookNum)}</em>
+          </h1>
+          <p class="book-head-note">{meta.note[lang]}</p>
+        </div>
+      </div>
+
+      <div class="passages">
+        {passages.map(p => (
+          <a href={`${langPrefix}/passage/${p.book}/${p.section}`} class="passage-row">
+            <div class="passage-row-ref">{romanize(p.book)}.{p.section}</div>
+            <p class="passage-row-text">{stripFn(p.text)}</p>
+            <span class="passage-row-arrow">→</span>
+          </a>
+        ))}
+      </div>
+
+      <div class="book-nav">
+        <a
+          href={prev ? `${langPrefix}/book/${prev}` : '#'}
+          class={prev ? '' : 'disabled'}
+          style={prev ? '' : 'opacity:.35;pointer-events:none'}
+        >
+          <div class="eyebrow">← {t.book_prev}</div>
+          {prev && <h4><em>{romanize(prev)}</em> · {BOOK_META[prev - 1].note[lang].slice(0, 48)}</h4>}
+        </a>
+        <a
+          href={next ? `${langPrefix}/book/${next}` : '#'}
+          class={`next${next ? '' : ' disabled'}`}
+          style={next ? '' : 'opacity:.35;pointer-events:none'}
+        >
+          <div class="eyebrow">{t.book_next} →</div>
+          {next && <h4><em>{romanize(next)}</em> · {BOOK_META[next - 1].note[lang].slice(0, 48)}</h4>}
+        </a>
+      </div>
+    </main>
+  </Shell>
+</Layout>

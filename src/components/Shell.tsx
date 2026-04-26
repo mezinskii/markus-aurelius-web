@@ -3,33 +3,39 @@ import { UI, type Lang } from '../lib/ui';
 
 interface Props {
   route: 'home' | 'contents' | 'about' | 'fronto' | 'book' | 'passage' | 'letter' | 'sayings';
+  /** Language is determined by URL: /ru/* is RU, everything else is EN. */
+  lang: Lang;
+  /** Current page path passed in from the server, e.g. "/book/3" or "/ru/book/3". */
+  pathname: string;
   children: ReactNode;
 }
 
-export default function Shell({ route, children }: Props) {
-  const [lang, setLang] = useState<Lang>('en');
+/** Build the equivalent URL in the other language. */
+function otherLangHref(lang: Lang, pathname: string): string {
+  // Strip /ru prefix if present
+  const stripped = pathname.replace(/^\/ru(?=\/|$)/, '') || '/';
+  if (lang === 'en') {
+    // Going to RU: prepend /ru (root '/' becomes '/ru')
+    return stripped === '/' ? '/ru' : '/ru' + stripped;
+  }
+  // Going to EN: stripped is already correct
+  return stripped;
+}
+
+export default function Shell({ route, lang, pathname, children }: Props) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [searchOpen, setSearchOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [footnote, setFootnote] = useState<{ key: string; text: string; rect: DOMRect } | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const l = (localStorage.getItem('lang') as Lang) || 'en';
     const t = (localStorage.getItem('theme') as 'light' | 'dark') || 'light';
-    setLang(l);
     setTheme(t);
     document.documentElement.setAttribute('data-theme', t);
-    document.documentElement.setAttribute('data-lang', l);
-    document.documentElement.setAttribute('lang', l);
-  }, []);
-
-  const toggleLang = () => {
-    const next = lang === 'en' ? 'ru' : 'en';
-    setLang(next);
-    localStorage.setItem('lang', next);
-    document.documentElement.setAttribute('data-lang', next);
-    document.documentElement.setAttribute('lang', next);
-  };
+    // Persist language choice so we can suggest it on root in the future
+    localStorage.setItem('lang', lang);
+  }, [lang]);
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -37,6 +43,9 @@ export default function Shell({ route, children }: Props) {
     localStorage.setItem('theme', next);
     document.documentElement.setAttribute('data-theme', next);
   };
+
+  const otherLang: Lang = lang === 'en' ? 'ru' : 'en';
+  const langHref = otherLangHref(lang, pathname);
 
   const t = UI[lang];
 
@@ -89,32 +98,40 @@ export default function Shell({ route, children }: Props) {
     <>
       <header className="top">
         <div className="top-inner">
-          <a className="brand" href="/">
+          <a className="brand" href={lang === 'ru' ? '/ru' : '/'}>
             <span className="brand-mark">M</span>
             <span className="brand-text">
               Meditations <em>— {t.brand_sub}</em>
             </span>
           </a>
 
-          <nav className="nav">
-            <a className={route === 'home' || route === 'book' || route === 'passage' ? 'active' : ''} href="/">{t.read}</a>
-            <a className={route === 'contents' ? 'active' : ''} href="/contents">{t.contents}</a>
-            <a className={route === 'fronto' || route === 'letter' ? 'active' : ''} href="/fronto">{t.fronto}</a>
-            <a className={route === 'sayings' ? 'active' : ''} href="/sayings">{t.sayings}</a>
-            <a className={route === 'about' ? 'active' : ''} href="/about">{t.about}</a>
+          <nav className={`nav${menuOpen ? ' nav--open' : ''}`} onClick={() => setMenuOpen(false)}>
+            <a className={route === 'home' || route === 'book' || route === 'passage' ? 'active' : ''} href={lang === 'ru' ? '/ru' : '/'}>{t.read}</a>
+            <a className={route === 'contents' ? 'active' : ''} href={lang === 'ru' ? '/ru/contents' : '/contents'}>{t.contents}</a>
+            <a className={route === 'fronto' || route === 'letter' ? 'active' : ''} href={lang === 'ru' ? '/ru/fronto' : '/fronto'}>{t.fronto}</a>
+            <a className={route === 'sayings' ? 'active' : ''} href={lang === 'ru' ? '/ru/sayings' : '/sayings'}>{t.sayings}</a>
+            <a className={route === 'about' ? 'active' : ''} href={lang === 'ru' ? '/ru/about' : '/about'}>{t.about}</a>
           </nav>
 
           <div className="top-tools">
             <button className="icon-btn" onClick={() => setSearchOpen(true)} title={t.search} aria-label={t.search}>
               <SearchIcon />
             </button>
-            <button className="lang-toggle" onClick={toggleLang} title="Language">
+            <a className="lang-toggle" href={langHref} title="Language" hrefLang={otherLang}>
               <span className={lang === 'en' ? 'on' : ''}>EN</span>
               <span style={{ margin: '0 4px' }}>/</span>
               <span className={lang === 'ru' ? 'on' : ''}>RU</span>
-            </button>
+            </a>
             <button className="icon-btn" onClick={toggleTheme} title="Theme" aria-label="Toggle theme">
               {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+            </button>
+            <button
+              className="icon-btn menu-btn"
+              onClick={() => setMenuOpen(o => !o)}
+              aria-label="Menu"
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? <CloseIcon /> : <MenuIcon />}
             </button>
           </div>
         </div>
@@ -127,7 +144,7 @@ export default function Shell({ route, children }: Props) {
           <div>{t.footer_copy}</div>
           <div className="spacer" />
           <div>{t.footer_made}</div>
-          <a href="/about" style={{ borderBottom: '1px solid currentColor' }}>{t.footer_feedback}</a>
+          <a href={lang === 'ru' ? '/ru/about' : '/about'} style={{ borderBottom: '1px solid currentColor' }}>{t.footer_feedback}</a>
         </div>
       </footer>
 
@@ -214,7 +231,7 @@ function FootnotePopover({ fnKey, text, anchorRect, onClose }: {
 
 // ─── Search overlay ────────────────────────────────────────────────────────────
 
-function SearchOverlay({ lang, onClose, setToast }: { lang: Lang; onClose: () => void; setToast: (s: string) => void }) {
+function SearchOverlay({ lang, onClose }: { lang: Lang; onClose: () => void; setToast: (s: string) => void }) {
   const t = UI[lang];
   const [q, setQ] = useState('');
 
@@ -253,15 +270,17 @@ function SearchResults({ q, lang, onClose }: { q: string; lang: Lang; onClose: (
     const needle = q.toLowerCase();
     fetch(
       `https://13u931c6.apicdn.sanity.io/v2026-04-20/data/query/production?query=${encodeURIComponent(
-        `*[_type=="passage" && work._ref=="work.meditations" && translator=="${lang === 'ru' ? 'Семён Роговин' : 'George Long'}" && text match $q][0..29]{passageId, book, section, text}`
+        `*[_type=="passage" && work._ref=="work.meditations" && translator=="${lang === 'ru' ? 'Роговин' : 'George Long'}" && text match $q][0..29]{passageId, book, section, text}`
       )}&%24q=%22${encodeURIComponent(q)}*%22`
     )
       .then(r => r.json())
       .then(data => {
         const rows = (data.result ?? []) as Array<{ passageId: string; book: number; section: string; text: string }>;
+        const prefix = lang === 'ru' ? '/ru' : '';
+        const refLabel = lang === 'ru' ? 'Книга' : 'Book';
         setResults(rows.map(p => ({
-          url: `/passage/${p.book}/${p.section}`,
-          ref: `Book ${p.book} · ${p.section}`,
+          url: `${prefix}/passage/${p.book}/${p.section}`,
+          ref: `${refLabel} ${p.book} · ${p.section}`,
           preview: (() => {
             const idx = p.text.toLowerCase().indexOf(needle);
             if (idx < 0) return p.text.slice(0, 160);
@@ -329,6 +348,20 @@ function MoonIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} style={{ width: 18, height: 18 }}>
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+    </svg>
+  );
+}
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} style={{ width: 18, height: 18 }}>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+function CloseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} style={{ width: 18, height: 18 }}>
+      <path d="M6 6l12 12M18 6 6 18" />
     </svg>
   );
 }

@@ -1,6 +1,6 @@
 ---
-import FrontoLetterPage from '../../components/pages/FrontoLetterPage.astro';
-import { getFrontoLetter, getFrontoLetterNumbers } from '../../lib/sanity';
+import FrontoLetterPage from '../../../components/pages/FrontoLetterPage.astro';
+import { getFrontoLetter, getFrontoLetterNumbers } from '../../../lib/sanity';
 
 export async function getStaticPaths() {
   const numbers = await getFrontoLetterNumbers();
@@ -11,7 +11,7 @@ const letterNum = parseInt(Astro.params.letter as string, 10);
 const sections = await getFrontoLetter(letterNum);
 
 if (!sections.length) {
-  return Astro.redirect('/fronto');
+  return Astro.redirect('/ru/fronto');
 }
 
 const allNums = await getFrontoLetterNumbers();
@@ -20,7 +20,7 @@ const prevLetter = idx > 0 ? allNums[idx - 1] : null;
 const nextLetter = idx < allNums.length - 1 ? allNums[idx + 1] : null;
 ---
 <FrontoLetterPage
-  lang="en"
+  lang="ru"
   letterNum={letterNum}
   sections={sections}
   prevLetter={prevLetter}

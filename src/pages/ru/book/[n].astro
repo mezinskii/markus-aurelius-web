@@ -1,5 +1,5 @@
 ---
-import BookPage from '../../components/pages/BookPage.astro';
+import BookPage from '../../../components/pages/BookPage.astro';
 
 export async function getStaticPaths() {
   return Array.from({ length: 12 }, (_, i) => ({ params: { n: String(i + 1) } }));
@@ -7,4 +7,4 @@ export async function getStaticPaths() {
 
 const bookNum = parseInt(Astro.params.n as string, 10);
 ---
-<BookPage lang="en" bookNum={bookNum} />
+<BookPage lang="ru" bookNum={bookNum} />

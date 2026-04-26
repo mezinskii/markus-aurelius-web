@@ -1,9 +1,9 @@
 ---
-import PassagePage from '../../../components/pages/PassagePage.astro';
-import { getAllMeditationsPassages, type MeditationPassage } from '../../../lib/sanity';
+import PassagePage from '../../../../components/pages/PassagePage.astro';
+import { getAllMeditationsPassages, type MeditationPassage } from '../../../../lib/sanity';
 
 export async function getStaticPaths() {
-  const all = await getAllMeditationsPassages('en');
+  const all = await getAllMeditationsPassages('ru');
   return all.map(p => ({
     params: { book: String(p.book), section: p.section },
     props: { passage: p },
@@ -14,4 +14,4 @@ const { passage } = Astro.props as { passage: MeditationPassage };
 const bookNum = parseInt(Astro.params.book as string, 10);
 const section = Astro.params.section as string;
 ---
-<PassagePage lang="en" bookNum={bookNum} section={section} passage={passage} />
+<PassagePage lang="ru" bookNum={bookNum} section={section} passage={passage} />
