@@ -6,7 +6,6 @@ import { getAllMeditationsPassages } from '../../lib/sanity';
 import { BOOK_META, romanize, UI, type Lang } from '../../lib/ui';
 import {
   websiteJsonLd, publisherJsonLd, marcusAureliusPerson, meditationsBookJsonLd,
-  pageUrl,
 } from '../../lib/seo';
 
 interface Props { lang: Lang; }
@@ -26,7 +25,6 @@ const description = lang === 'ru'
   ? 'Полный текст «Размышлений» Марка Аврелия в переводе Семёна Роговина (1914). Двенадцать книг, 487 пассажей, прямая ссылка на каждый. Public domain, без рекламы.'
   : 'The complete Meditations of Marcus Aurelius in the public-domain George Long translation (1862). Twelve books, 487 passages, every passage a direct link. No ads.';
 
-const url = pageUrl(lang, '/');
 const jsonLd = [
   websiteJsonLd(lang),
   publisherJsonLd(),
@@ -41,7 +39,9 @@ const jsonLd = [
         <div>
           <div class="home-eyebrow">{t.home_eyebrow}</div>
           <h1 class="home-title" set:html={`${t.home_title_1}<br /><em>${t.home_title_2}</em>`} />
+          <div class="home-alt-title">{t.home_alt_title}</div>
           <p class="home-sub">{t.home_sub}</p>
+          <div class="home-tagline">{t.home_tagline}</div>
           <div class="home-meta">
             <div>{t.home_meta_1}<strong>{t.home_meta_1_v}</strong></div>
             <div>{t.home_meta_2}<strong>{t.home_meta_2_v}</strong></div>

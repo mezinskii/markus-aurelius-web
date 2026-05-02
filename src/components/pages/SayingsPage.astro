@@ -56,16 +56,19 @@ const jsonLd = [
               : <>Marcus Aurelius · recorded by ancient biographers · not from the <em>Meditations</em></>}
           </div>
           <h1 class="book-head-title">
-            {lang === 'ru' ? <em>Изречения</em> : <>The <em>Sayings</em></>}
+            {lang === 'ru'
+              ? <>Цитаты и <em>изречения</em></>
+              : <>Quotes and <em>Sayings</em></>}
           </h1>
           <p class="book-head-note">
             {lang === 'ru'
-              ? <>{sayings.length} коротких фрагментов, сохранённых Дионом Кассием, <em>Historia Augusta</em> и
-                другими — реплики, подслушанные в совете, у одра болезни, на поле боя. Собраны в приложении
-                к Loeb (Хайнс, 1916). Русского перевода пока нет — тексты на английском.</>
-              : <>{sayings.length} short fragments preserved by Dio Cassius, the <em>Historia Augusta</em>, and
-                others — remarks overheard at council, the sickbed, the battlefield. Collected in the Loeb
-                Appendix (Haines, 1916).</>}
+              ? <>{sayings.length} коротких цитат и изречений Марка Аврелия, не вошедших в «Размышления»,
+                — сохранённых Дионом Кассием, <em>Historia Augusta</em> и другими: реплики, подслушанные
+                в совете, у одра болезни, на поле боя. Собраны в приложении к Loeb (Хайнс, 1916). Русского
+                перевода пока нет — тексты на английском.</>
+              : <>{sayings.length} short quotes and sayings of Marcus Aurelius, outside the <em>Meditations</em>,
+                preserved by Dio Cassius, the <em>Historia Augusta</em> and others — remarks overheard at council,
+                the sickbed, the battlefield. Collected in the Loeb Appendix (Haines, 1916).</>}
           </p>
         </div>
       </div>
@@ -83,12 +86,14 @@ const jsonLd = [
       <div style="max-width:var(--measure);margin-bottom:56px">
         <p style="font-family:var(--serif);font-size:17px;line-height:1.65;color:var(--text-soft);margin:0 0 1em">
           {lang === 'ru'
-            ? <>Это не из <em>Размышлений</em>. Они дошли как анекдот: подслушано придворным, переписано
-              в историю, запомнено биографом. Кратко, неровно, иногда апокрифично — но ближе к живому голосу
-              в комнате, чем страницы, которые Марк писал себе по ночам.</>
-            : <>These are not from the <em>Meditations</em>. They survive as anecdote: overheard by a courtier,
-              copied into a history, remembered by a biographer. Brief, uneven, sometimes apocryphal — but
-              closer to a voice in a room than the pages Marcus wrote to himself at night.</>}
+            ? <>Самые известные цитаты Марка Аврелия — те, что он писал сам себе ночами, — собраны
+              в <em>Размышлениях</em>. А это другое: апокрифические изречения, дошедшие как анекдот,
+              подслушанные придворным, переписанные в историю, запомненные биографом. Кратко, неровно,
+              иногда сомнительно — но ближе к живому голосу в комнате.</>
+            : <>The most famous quotes of Marcus Aurelius — the ones he wrote to himself at night —
+              are collected in the <em>Meditations</em>. These are something else: apocryphal sayings
+              preserved as anecdote, overheard by a courtier, copied into a history, remembered by a
+              biographer. Brief, uneven, sometimes doubtful — but closer to a voice in a room.</>}
         </p>
       </div>
 

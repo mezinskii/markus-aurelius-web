@@ -24,11 +24,11 @@ function stripFn(text: string) {
 
 const roman = romanize(bookNum);
 const title = lang === 'ru'
-  ? `Книга ${roman} «Размышлений» Марка Аврелия — читать онлайн`
-  : `Book ${roman} of the Meditations of Marcus Aurelius — Read Online`;
+  ? `Размышления, книга ${roman} — Марк Аврелий · читать онлайн`
+  : `Meditations, Book ${roman} — Marcus Aurelius · Read Online`;
 const description = lang === 'ru'
-  ? `Книга ${roman} (${bookNum}) «Размышлений» Марка Аврелия. ${passages.length} пассажей в переводе Семёна Роговина. ${meta.note.ru}`
-  : `Book ${roman} (${bookNum}) of Marcus Aurelius's Meditations. ${passages.length} passages in the George Long translation. ${meta.note.en}`;
+  ? `Книга ${roman} (${bookNum}) «Размышлений» Марка Аврелия в переводе Семёна Роговина (1914), ${passages.length} пассажей. ${meta.note.ru} Темы: ${meta.themes.ru}.`
+  : `Book ${roman} (${bookNum}) of Marcus Aurelius's Meditations in the George Long translation (1862), ${passages.length} passages. ${meta.note.en} Themes: ${meta.themes.en}.`;
 
 const url = pageUrl(lang, `/book/${bookNum}`);
 const chapterJsonLd = {
