@@ -16,6 +16,19 @@ export function pageUrl(lang: Lang, basePath: string): string {
   return abs(stripped);
 }
 
+/** Pick the right pre-rendered OG image (1200×630) for the current route+lang. */
+export function ogImageForPath(basePath: string, lang: Lang): string {
+  const stripped = basePath.replace(/^\/ru(?=\/|$)/, '') || '/';
+  const suffix = lang === 'ru' ? '-ru' : '-en';
+  let slug = 'home';
+  if (stripped === '/contents') slug = 'contents';
+  else if (stripped === '/about') slug = 'about';
+  else if (stripped === '/sayings') slug = 'sayings';
+  else if (stripped === '/fronto' || stripped.startsWith('/fronto/')) slug = 'fronto';
+  // book/N and passage/B/S fall through to home
+  return abs(`/og/${slug}${suffix}.png`);
+}
+
 const MARCUS_ID = abs('/#person-marcus-aurelius');
 
 export function marcusAureliusPerson() {

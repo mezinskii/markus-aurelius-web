@@ -32,7 +32,19 @@ const stripped = path.replace(/^\/ru(?=\/|$)/, "") || "/";
 const enUrl = SITE_ORIGIN + stripped;
 const ruUrl = SITE_ORIGIN + (stripped === "/" ? "/ru" : "/ru" + stripped);
 const canonicalUrl = lang === "ru" ? ruUrl : enUrl;
-const ogImageUrl = ogImage ?? SITE_ORIGIN + "/android-chrome-512x512.png";
+
+// Pick pre-rendered 1200×630 OG image for this route+lang.
+function ogForRoute(p: string, l: "en" | "ru"): string {
+  const s = p.replace(/^\/ru(?=\/|$)/, "") || "/";
+  const suf = l === "ru" ? "-ru" : "-en";
+  let slug = "home";
+  if (s === "/contents") slug = "contents";
+  else if (s === "/about") slug = "about";
+  else if (s === "/sayings") slug = "sayings";
+  else if (s === "/fronto" || s.startsWith("/fronto/")) slug = "fronto";
+  return `${SITE_ORIGIN}/og/${slug}${suf}.png`;
+}
+const ogImageUrl = ogImage ?? ogForRoute(stripped, lang);
 ---
 <!doctype html>
 <html lang={lang}>
@@ -62,9 +74,12 @@ const ogImageUrl = ogImage ?? SITE_ORIGIN + "/android-chrome-512x512.png";
     <meta property="og:locale:alternate" content={lang === "ru" ? "en_US" : "ru_RU"} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
 
     {/* Twitter */}
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />

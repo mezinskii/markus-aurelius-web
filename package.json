@@ -9,7 +9,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "og": "node scripts/build-og.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^5.0.4",
@@ -21,5 +22,12 @@
     "astro": "^6.1.9",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@fontsource/eb-garamond": "^5.2.7",
+    "@fontsource/inter": "^5.2.8",
+    "@resvg/resvg-js": "^2.6.2",
+    "satori": "^0.26.0",
+    "wawoff2": "^2.0.1"
   }
 }
