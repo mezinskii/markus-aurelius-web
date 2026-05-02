@@ -1,7 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
-import { BOOK_META, romanize, UI, type Lang } from '../../lib/ui';
+import { BOOK_META, romanize, passageWord, UI, type Lang } from '../../lib/ui';
 import { breadcrumbsJsonLd, meditationsBookJsonLd, pageUrl } from '../../lib/seo';
 
 interface Props { lang: Lang; }
@@ -41,12 +41,18 @@ const jsonLd = [
         <div class="book-head-meta">
           <div class="book-head-eyebrow">{t.home_eyebrow}</div>
           <h1 class="book-head-title">
-            {t.contents_heading} <em>— {t.contents_sub}</em>
+            {lang === 'ru'
+              ? <>Оглавление <em>«Размышлений»</em></>
+              : <>Contents of the <em>Meditations</em></>}
           </h1>
           <p class="book-head-note">
             {lang === 'ru'
-              ? 'Каждая книга — отдельная записная тетрадь. Читайте по порядку или открывайте ту главу, которая зовёт вас сегодня, — обязательного пути здесь нет.'
-              : 'Each book is a standalone notebook. Read them in order, or open whichever chapter calls to you today — there is no prescribed path.'}
+              ? <>Полное оглавление «Размышлений» Марка Аврелия — двенадцать книг, 487 пассажей
+                в переводе Семёна Роговина (1914). Каждая книга — отдельная записная книжка:
+                можно читать по порядку или открывать ту, что ближе сегодня. Тексты в общественном достоянии.</>
+              : <>The complete contents of Marcus Aurelius's <em>Meditations</em> — twelve books,
+                487 passages in the public-domain George Long translation (1862). Each book is its own
+                notebook: read them in order, or open whichever feels closest today.</>}
           </p>
         </div>
       </div>
@@ -57,7 +63,7 @@ const jsonLd = [
             <div class="book-tile-num">{romanize(b.n)}</div>
             <div class="book-tile-label">{lang === 'ru' ? 'Книга' : 'Book'} {b.n}</div>
             <p class="book-tile-quote">«{b.quote[lang]}»</p>
-            <div class="book-tile-count">{b.count} {lang === 'ru' ? 'пассажей' : 'passages'}</div>
+            <div class="book-tile-count">{b.count} {passageWord(b.count, lang)}</div>
           </a>
         ))}
       </div>

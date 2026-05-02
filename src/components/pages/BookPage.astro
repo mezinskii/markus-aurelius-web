@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
 import { getMeditationsBook } from '../../lib/sanity';
-import { BOOK_META, romanize, UI, type Lang } from '../../lib/ui';
+import { BOOK_META, romanize, passageWord, UI, type Lang } from '../../lib/ui';
 import { breadcrumbsJsonLd, meditationsBookJsonLd, pageUrl, abs } from '../../lib/seo';
 
 interface Props { lang: Lang; bookNum: number; }
@@ -27,8 +27,8 @@ const title = lang === 'ru'
   ? `Размышления, книга ${roman} — Марк Аврелий · читать онлайн`
   : `Meditations, Book ${roman} — Marcus Aurelius · Read Online`;
 const description = lang === 'ru'
-  ? `Книга ${roman} (${bookNum}) «Размышлений» Марка Аврелия в переводе Семёна Роговина (1914), ${passages.length} пассажей. ${meta.note.ru} Темы: ${meta.themes.ru}.`
-  : `Book ${roman} (${bookNum}) of Marcus Aurelius's Meditations in the George Long translation (1862), ${passages.length} passages. ${meta.note.en} Themes: ${meta.themes.en}.`;
+  ? `Книга ${roman} (${bookNum}) «Размышлений» Марка Аврелия в переводе Семёна Роговина (1914), ${passages.length} ${passageWord(passages.length, 'ru')}. ${meta.note.ru} Темы: ${meta.themes.ru}.`
+  : `Book ${roman} (${bookNum}) of Marcus Aurelius's Meditations in the George Long translation (1862), ${passages.length} ${passageWord(passages.length, 'en')}. ${meta.note.en} Themes: ${meta.themes.en}.`;
 
 const url = pageUrl(lang, `/book/${bookNum}`);
 const chapterJsonLd = {
@@ -68,11 +68,13 @@ const jsonLd = [
         <div class="book-head-meta">
           <div class="book-head-eyebrow">
             {lang === 'ru'
-              ? `Книга ${bookNum} из двенадцати · ${passages.length} пассажей`
-              : `Book ${bookNum} of Twelve · ${passages.length} passages`}
+              ? `Марк Аврелий · Книга ${bookNum} из двенадцати · ${passages.length} ${passageWord(passages.length, 'ru')}`
+              : `Marcus Aurelius · Book ${bookNum} of Twelve · ${passages.length} ${passageWord(passages.length, 'en')}`}
           </div>
           <h1 class="book-head-title">
-            {lang === 'ru' ? 'Книга' : 'Book'} <em>{romanize(bookNum)}</em>
+            {lang === 'ru'
+              ? <><em>«Размышления»</em>, книга {romanize(bookNum)}</>
+              : <><em>Meditations</em>, Book {romanize(bookNum)}</>}
           </h1>
           <p class="book-head-note">{meta.note[lang]}</p>
         </div>

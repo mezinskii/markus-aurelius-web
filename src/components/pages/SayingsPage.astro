@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
 import { getAllSayings } from '../../lib/sanity';
-import { romanize, UI, type Lang } from '../../lib/ui';
+import { romanize, fragmentWord, pluralRu, UI, type Lang } from '../../lib/ui';
 import { renderWithFootnotes } from '../../lib/footnotes';
 import { sayingJsonLd, breadcrumbsJsonLd, marcusAureliusPerson, pageUrl } from '../../lib/seo';
 
@@ -15,11 +15,11 @@ const langPrefix = lang === 'ru' ? '/ru' : '';
 const pathname = `${langPrefix}/sayings`;
 
 const title = lang === 'ru'
-  ? `Изречения Марка Аврелия — ${sayings.length} фрагментов из Диона и Historia Augusta`
-  : `Sayings of Marcus Aurelius — ${sayings.length} Fragments from Dio and the Historia Augusta`;
+  ? `Цитаты и изречения Марка Аврелия — ${sayings.length} ${fragmentWord(sayings.length, 'ru')} (Loeb)`
+  : `Marcus Aurelius Quotes and Sayings — ${sayings.length} Fragments (Loeb)`;
 const description = lang === 'ru'
-  ? `${sayings.length} коротких изречений Марка Аврелия, сохранённых Дионом Кассием, Historia Augusta и другими — не из «Размышлений». Перевод C. R. Haines (Loeb, 1916), public domain.`
-  : `${sayings.length} short sayings of Marcus Aurelius preserved by Dio Cassius, the Historia Augusta and others — not from the Meditations. C. R. Haines translation (Loeb, 1916), public domain.`;
+  ? `${sayings.length} коротких ${fragmentWord(sayings.length, 'ru')} — цитат и изречений Марка Аврелия, сохранившихся у Диона Кассия, в «Historia Augusta» и у других античных биографов. Не из «Размышлений». Перевод C. R. Haines (Loeb, 1916), public domain.`
+  : `${sayings.length} short fragments — quotes and sayings of Marcus Aurelius preserved by Dio Cassius, the Historia Augusta, and other ancient biographers. Not from the Meditations. C. R. Haines translation (Loeb, 1916), public domain.`;
 
 const url = pageUrl(lang, '/sayings');
 const cleanText = (s: string) => s.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '');
@@ -57,18 +57,19 @@ const jsonLd = [
           </div>
           <h1 class="book-head-title">
             {lang === 'ru'
-              ? <>Цитаты и <em>изречения</em></>
-              : <>Quotes and <em>Sayings</em></>}
+              ? <>Цитаты и <em>изречения</em> Марка Аврелия</>
+              : <>Quotes and <em>Sayings</em> of Marcus Aurelius</>}
           </h1>
           <p class="book-head-note">
             {lang === 'ru'
-              ? <>{sayings.length} коротких цитат и изречений Марка Аврелия, не вошедших в «Размышления»,
-                — сохранённых Дионом Кассием, <em>Historia Augusta</em> и другими: реплики, подслушанные
-                в совете, у одра болезни, на поле боя. Собраны в приложении к Loeb (Хайнс, 1916). Русского
-                перевода пока нет — тексты на английском.</>
-              : <>{sayings.length} short quotes and sayings of Marcus Aurelius, outside the <em>Meditations</em>,
-                preserved by Dio Cassius, the <em>Historia Augusta</em> and others — remarks overheard at council,
-                the sickbed, the battlefield. Collected in the Loeb Appendix (Haines, 1916).</>}
+              ? <>{sayings.length} коротких {fragmentWord(sayings.length, 'ru')} — реплики Марка Аврелия,
+                подслушанные в совете, у одра болезни, на поле боя. Сохранились у Диона Кассия,
+                в <em>Historia Augusta</em> и у других античных биографов; не вошли в <em>«Размышления»</em>.
+                Собраны в приложении к Loeb (Хайнс, 1916). Русского перевода пока нет — тексты на английском.</>
+              : <>{sayings.length} short fragments — remarks of Marcus Aurelius overheard at council,
+                the sickbed, the battlefield. Preserved by Dio Cassius, the <em>Historia Augusta</em>,
+                and other ancient biographers; not from the <em>Meditations</em>.
+                Collected in the Loeb Appendix (Haines, 1916).</>}
           </p>
         </div>
       </div>
@@ -78,7 +79,7 @@ const jsonLd = [
         <div>{lang === 'ru' ? 'Переводчик' : 'Translator'}<strong>C. R. Haines, 1916</strong></div>
         <div>
           {lang === 'ru' ? 'Источники' : 'Sources'}
-          <strong>{lang === 'ru' ? 'Дион · Капитолин' : 'Dio · Capitolinus'}</strong>
+          <strong>{lang === 'ru' ? 'Дион Кассий · Historia Augusta' : 'Dio Cassius · Historia Augusta'}</strong>
         </div>
         <div>{lang === 'ru' ? 'Права' : 'Rights'}<strong>Public domain</strong></div>
       </div>
@@ -87,19 +88,25 @@ const jsonLd = [
         <p style="font-family:var(--serif);font-size:17px;line-height:1.65;color:var(--text-soft);margin:0 0 1em">
           {lang === 'ru'
             ? <>Самые известные цитаты Марка Аврелия — те, что он писал сам себе ночами, — собраны
-              в <em>Размышлениях</em>. А это другое: апокрифические изречения, дошедшие как анекдот,
+              в <em>«Размышлениях»</em>. А это другое: апокрифические изречения, дошедшие как анекдот,
               подслушанные придворным, переписанные в историю, запомненные биографом. Кратко, неровно,
-              иногда сомнительно — но ближе к живому голосу в комнате.</>
+              иногда сомнительно — но ближе к живому голосу в комнате. В этих коротких высказываниях
+              слышны темы стоической философии: справедливость, смерть, чувство долга, отношение
+              к славе и власти.</>
             : <>The most famous quotes of Marcus Aurelius — the ones he wrote to himself at night —
               are collected in the <em>Meditations</em>. These are something else: apocryphal sayings
               preserved as anecdote, overheard by a courtier, copied into a history, remembered by a
-              biographer. Brief, uneven, sometimes doubtful — but closer to a voice in a room.</>}
+              biographer. Brief, uneven, sometimes doubtful — but closer to a voice in a room. In these
+              short remarks the themes of Stoic philosophy still come through — justice, death, duty,
+              and the right attitude toward fame and power.</>}
         </p>
       </div>
 
       <div class="books-section-head">
         <h2>
-          {lang === 'ru' ? `Все ${sayings.length} изречений` : `All ${sayings.length} sayings`}
+          {lang === 'ru'
+            ? `Все ${sayings.length} ${pluralRu(sayings.length, 'изречение', 'изречения', 'изречений')}`
+            : `All ${sayings.length} sayings`}
           <em style="font-size:18px;margin-left:10px">{lang === 'ru' ? 'по порядку' : 'in order'}</em>
         </h2>
       </div>

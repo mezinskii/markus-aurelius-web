@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
 import { getFrontoLettersIndex } from '../../lib/sanity';
-import { romanize, UI, type Lang } from '../../lib/ui';
+import { romanize, letterWord, fragmentWord, UI, type Lang } from '../../lib/ui';
 import { breadcrumbsJsonLd, marcusAureliusPerson, frontoPerson, pageUrl, articleJsonLd } from '../../lib/seo';
 
 interface Props { lang: Lang; }
@@ -45,7 +45,7 @@ const jsonLd = [
       </div>
 
       <div class="book-head" style="grid-template-columns:auto 1fr">
-        <div class="book-head-num" style="font-size:clamp(48px,7vw,120px)">CLIII</div>
+        <div class="book-head-num" style="font-size:clamp(48px,7vw,120px)">{romanize(letters.length)}</div>
         <div class="book-head-meta">
           <div class="book-head-eyebrow">
             {lang === 'ru'
@@ -53,12 +53,14 @@ const jsonLd = [
               : 'Marcus Aurelius & Fronto · c. 138–166 CE'}
           </div>
           <h1 class="book-head-title">
-            {lang === 'ru' ? <>Переписка с <em>Фронтоном</em></> : <>The <em>Letters</em></>}
+            {lang === 'ru'
+              ? <>Переписка Марка Аврелия с <em>Фронтоном</em></>
+              : <>Letters of Marcus Aurelius and <em>Fronto</em></>}
           </h1>
           <p class="book-head-note">
             {lang === 'ru'
-              ? `${letters.length} писем и фрагментов между императором и его учителем риторики — тёплые, учёные, порой игривые. Перевод К. Р. Хайнса (Loeb Classical Library, 1919). Русского перевода пока нет — тексты ниже на английском.`
-              : `${letters.length} letters and fragments between the emperor and his rhetoric teacher — warm, learned, sometimes playful. C. R. Haines translation (Loeb Classical Library, 1919).`}
+              ? `${letters.length} писем и фрагментов из переписки Марка Аврелия с его учителем риторики Марком Корнелием Фронтоном (138–166 гг.) — тёплые, учёные, порой игривые. Перевод К. Р. Хайнса (Loeb Classical Library, 1919). Русского перевода пока нет — тексты ниже на английском.`
+              : `${letters.length} letters and fragments from the correspondence of Marcus Aurelius with his rhetoric teacher Marcus Cornelius Fronto (138–166 CE) — warm, learned, sometimes playful. C. R. Haines translation (Loeb Classical Library, 1919).`}
           </p>
         </div>
       </div>
@@ -66,8 +68,8 @@ const jsonLd = [
       <div class="home-meta" style="margin-bottom:56px;padding-top:24px;border-top:1px solid var(--rule)">
         <div>{lang === 'ru' ? 'Произведение' : 'Work'}<strong>Epistulae</strong></div>
         <div>
-          {lang === 'ru' ? 'Писем' : 'Letters'}
-          <strong>{letters.length} {lang === 'ru' ? 'фрагментов' : 'sections'}</strong>
+          {lang === 'ru' ? 'Сохранилось' : 'Surviving'}
+          <strong>{letters.length} {lang === 'ru' ? fragmentWord(letters.length, 'ru') : (letters.length === 1 ? 'fragment' : 'fragments')}</strong>
         </div>
         <div>
           {lang === 'ru' ? 'Язык' : 'Language'}
@@ -104,7 +106,9 @@ const jsonLd = [
 
       <div class="books-section-head">
         <h2>
-          {lang === 'ru' ? `Все ${letters.length} писем` : `All ${letters.length} letters`}
+          {lang === 'ru'
+            ? `Все ${letters.length} ${letterWord(letters.length, 'ru')}`
+            : `All ${letters.length} letters`}
           <em style="font-size:18px;margin-left:10px">{lang === 'ru' ? 'по порядку' : 'in order'}</em>
         </h2>
       </div>

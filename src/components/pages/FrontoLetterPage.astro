@@ -99,6 +99,9 @@ const jsonLd = [
         </div>
 
         <h1 class="passage-section" style="font-size:clamp(24px,3vw,38px)">
+          <span style="font-weight:400;color:var(--text-mute)">
+            {lang === 'ru' ? `Письмо ${roman}: ` : `Letter ${roman}: `}
+          </span>
           {sender}
           <span style="font-weight:400;font-size:0.6em;color:var(--text-mute)">
             {' '}{lang === 'ru' ? '—' : 'to'}{' '}

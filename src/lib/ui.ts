@@ -50,15 +50,15 @@ export const UI = {
     search: 'Search',
     brand_sub: 'the digital archive',
     home_eyebrow: 'Marcus Aurelius · 121–180 CE · written in Greek',
-    home_title_1: 'Meditations',
+    home_title_1: 'Meditations of Marcus Aurelius',
     home_title_2: 'for one reader',
-    home_sub: 'The private notebook of a Roman emperor, read as he wrote it — slowly, out of order, and without commentary. Twelve books, every passage a direct link.',
+    home_sub: 'The Meditations of Marcus Aurelius — the private notebook of a Roman emperor and Stoic philosopher (121–180 CE), written to himself while on military campaign. All twelve books, 487 passages, each with its own URL. No commentary, no ads.',
     home_meta_1: 'Title',    home_meta_1_v: 'Τὰ εἰς ἑαυτόν',
     home_meta_2: 'Composed', home_meta_2_v: 'c. 170–180 CE',
     home_meta_3: 'Books',    home_meta_3_v: 'Twelve',
     home_meta_4: 'Translator', home_meta_4_v: 'George Long, 1862',
     home_alt_title: 'Τὰ εἰς ἑαυτόν · To Himself · ad se ipsum',
-    home_tagline: 'Full text · free · public domain · read online',
+    home_tagline: 'Read online · full text · free · public domain',
     today: 'A passage at random',
     shuffle: 'Another',
     today_cta: 'Open passage',
@@ -86,10 +86,10 @@ export const UI = {
     search_results: 'results',
     search_empty: 'No passages match.',
     search_hint: 'Type to search passages.',
-    about_head_1: 'A quiet reader',
-    about_head_2: 'for a restless book.',
-    about_p1: 'Marcus Aurelius wrote the Meditations in private, for himself, as a soldier and emperor. It was never meant for publication. It survived anyway — by manuscript, then by press, then by translation.',
-    about_p2: 'This site publishes all twelve books in the public-domain George Long translation, indexed, searchable, and linkable by passage. No commentary. No feeds. No login.',
+    about_head_1: 'A quiet reader for',
+    about_head_2: 'Marcus Aurelius\'s Meditations',
+    about_p1: 'Marcus Aurelius wrote the Meditations in private, for himself, while serving as a soldier and emperor. The text was never meant for publication. It survived anyway — first in manuscript, then in print, then in translation into nearly every European language.',
+    about_p2: 'This site publishes all 487 passages in the public-domain George Long translation (1862), with an index, full-text search, and a direct link to every passage. No commentary, no ads, no signup.',
     about_cell_1_t: 'Everything',
     about_cell_1_p: 'All 487 passages across twelve books, translated by George Long (1862).',
     about_cell_2_t: 'Permalink',
@@ -129,15 +129,15 @@ export const UI = {
     search: 'Поиск',
     brand_sub: 'цифровой архив',
     home_eyebrow: 'Марк Аврелий · 121–180 гг. · на греческом',
-    home_title_1: 'Размышления',
-    home_title_2: 'для одного читателя',
-    home_sub: 'Частная записная книжка римского императора — так, как он её и писал: медленно, не по порядку, без комментариев. Двенадцать книг, прямая ссылка на каждый пассаж.',
+    home_title_1: 'Размышления Марка Аврелия',
+    home_title_2: 'наедине с собой',
+    home_sub: '«Размышления» Марка Аврелия — частная записная книжка римского императора-стоика (121–180 гг.), которую он вёл для себя в военных лагерях. Все двенадцать книг, 487 пассажей, у каждого — своя ссылка. Без комментариев, без рекламы.',
     home_meta_1: 'Название',   home_meta_1_v: 'Τὰ εἰς ἑαυτόν',
     home_meta_2: 'Время',      home_meta_2_v: 'ок. 170–180 гг.',
     home_meta_3: 'Книг',       home_meta_3_v: 'Двенадцать',
     home_meta_4: 'Переводчик', home_meta_4_v: 'Семён Роговин, 1914',
     home_alt_title: 'Τὰ εἰς ἑαυτόν · Наедине с собой · К самому себе',
-    home_tagline: 'Полный текст · бесплатно · public domain · читать онлайн',
+    home_tagline: 'Читать онлайн · полный текст · бесплатно · public domain',
     today: 'Случайный пассаж',
     shuffle: 'Ещё',
     today_cta: 'Открыть пассаж',
@@ -165,11 +165,11 @@ export const UI = {
     search_results: 'результатов',
     search_empty: 'Ничего не найдено.',
     search_hint: 'Начните печатать — поиск по пассажам.',
-    about_head_1: 'Тихая читалка',
-    about_head_2: 'для беспокойной книги.',
-    about_p1: 'Марк Аврелий писал «Размышления» приватно, для себя, будучи воином и императором. Они не предназначались для публикации — но уцелели: сперва в рукописи, затем в печати, затем в переводах.',
-    about_p2: 'Этот сайт публикует все двенадцать книг в переводе Семёна Роговина из public domain — с индексом, поиском и прямой ссылкой на каждый пассаж. Без комментариев. Без ленты. Без логина.',
-    about_cell_1_t: 'Всё целиком',
+    about_head_1: 'О сайте',
+    about_head_2: '«Размышления» Марка Аврелия онлайн',
+    about_p1: '«Размышления» Марк Аврелий писал лично для себя — когда был солдатом и императором. Текст не предназначался для публикации, но сохранился: сперва в рукописях, затем в первых печатных изданиях XVI века, затем в переводах почти на все европейские языки.',
+    about_p2: 'Этот сайт публикует все 487 пассажей в переводе Семёна Роговина (1914) из общественного достояния — с индексом, полнотекстовым поиском и прямой ссылкой на каждый пассаж. Без комментариев, без рекламы, без регистрации.',
+    about_cell_1_t: 'Полное собрание',
     about_cell_1_p: 'Все 487 пассажей, двенадцать книг, перевод Семёна Роговина (1914).',
     about_cell_2_t: 'Permalink',
     about_cell_2_p: 'У каждого пассажа свой URL. Цитируйте, делитесь, возвращайтесь.',
@@ -199,6 +199,30 @@ export const UI = {
     from_label: 'От',
   },
 } as const;
+
+/** Russian noun plural agreement: 1 → one, 2-4 → few, 5+ / 11-14 → many. */
+export function pluralRu(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+}
+
+export function passageWord(n: number, lang: Lang): string {
+  if (lang === 'en') return n === 1 ? 'passage' : 'passages';
+  return pluralRu(n, 'пассаж', 'пассажа', 'пассажей');
+}
+
+export function fragmentWord(n: number, lang: Lang): string {
+  if (lang === 'en') return n === 1 ? 'fragment' : 'fragments';
+  return pluralRu(n, 'фрагмент', 'фрагмента', 'фрагментов');
+}
+
+export function letterWord(n: number, lang: Lang): string {
+  if (lang === 'en') return n === 1 ? 'letter' : 'letters';
+  return pluralRu(n, 'письмо', 'письма', 'писем');
+}
 
 export function romanize(num: number): string {
   const map: [string, number][] = [
