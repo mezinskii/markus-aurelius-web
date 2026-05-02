@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Block Vercel preview/branch deployments via canonical, but explicitly
+# allow primary indexing here. Search engines de-duplicate via canonical URL.
+
+Sitemap: https://readaurelius.org/sitemap-index.xml

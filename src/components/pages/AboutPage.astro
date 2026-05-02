@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
 import { getFrontoLetterNumbers } from '../../lib/sanity';
 import { UI, type Lang } from '../../lib/ui';
+import { breadcrumbsJsonLd, articleJsonLd, marcusAureliusPerson, pageUrl } from '../../lib/seo';
 
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
@@ -13,13 +14,23 @@ const langPrefix = lang === 'ru' ? '/ru' : '';
 const pathname = `${langPrefix}/about`;
 
 const title = lang === 'ru'
-  ? 'О проекте — Размышления'
-  : 'About — Meditations';
+  ? 'О проекте — «Размышления» Марка Аврелия онлайн'
+  : 'About — Meditations of Marcus Aurelius online';
 const description = lang === 'ru'
-  ? 'Тихий читатель «Размышлений» Марка Аврелия. 487 пассажей в двух переводах из public domain — с индексом, поиском и прямой ссылкой на каждый пассаж.'
-  : 'A quiet reader for Marcus Aurelius\'s Meditations. 487 passages in two public-domain translations, indexed, searchable, linkable.';
+  ? 'О проекте Read Aurelius: тихая читалка «Размышлений» Марка Аврелия. 487 пассажей в переводе Роговина (1914) и Лонга (1862) — с индексом, поиском и прямой ссылкой на каждый пассаж. Public domain.'
+  : 'About Read Aurelius: a quiet reader for Marcus Aurelius\'s Meditations. 487 passages in the public-domain Long (1862) and Rogovin (1914) translations — indexed, searchable, linkable.';
+
+const url = pageUrl(lang, '/about');
+const jsonLd = [
+  marcusAureliusPerson(),
+  articleJsonLd({ url, headline: title, description, lang }),
+  breadcrumbsJsonLd([
+    { name: lang === 'ru' ? 'Главная' : 'Home', url: pageUrl(lang, '/') },
+    { name: lang === 'ru' ? 'О проекте' : 'About', url },
+  ]),
+];
 ---
-<Layout title={title} description={description} lang={lang} basePath="/about">
+<Layout title={title} description={description} lang={lang} basePath="/about" jsonLd={jsonLd}>
   <Shell route="about" lang={lang} pathname={pathname} client:load>
     <main class="wrap">
       <div class="crumbs">

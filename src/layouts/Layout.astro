@@ -1,18 +1,29 @@
 ---
 import Analytics from "@vercel/analytics/astro";
+
 export interface Props {
   title?: string;
   description?: string;
   lang?: "en" | "ru";
   /** Path on this language for hreflang alternate, e.g. "/book/3" or "/contents". */
   basePath?: string;
+  /** JSON-LD objects to inject into <head>. Each becomes a separate <script>. */
+  jsonLd?: Array<Record<string, unknown>>;
+  /** Optional override for OG image absolute URL. */
+  ogImage?: string;
 }
-const SITE_ORIGIN = "https://meditations.example"; // TODO: replace with real domain
+
+const SITE_ORIGIN =
+  (import.meta.env.PUBLIC_SITE_URL as string | undefined)?.replace(/\/$/, "") ||
+  "https://readaurelius.org";
+
 const {
   title = "Meditations — Marcus Aurelius",
   description = "The private notebook of a Roman emperor — twelve books, every passage a direct link.",
   lang = "en",
   basePath,
+  jsonLd = [],
+  ogImage,
 } = Astro.props;
 
 // Compute hreflang URLs
@@ -20,6 +31,8 @@ const path = basePath ?? Astro.url.pathname;
 const stripped = path.replace(/^\/ru(?=\/|$)/, "") || "/";
 const enUrl = SITE_ORIGIN + stripped;
 const ruUrl = SITE_ORIGIN + (stripped === "/" ? "/ru" : "/ru" + stripped);
+const canonicalUrl = lang === "ru" ? ruUrl : enUrl;
+const ogImageUrl = ogImage ?? SITE_ORIGIN + "/android-chrome-512x512.png";
 ---
 <!doctype html>
 <html lang={lang}>
@@ -29,24 +42,37 @@ const ruUrl = SITE_ORIGIN + (stripped === "/" ? "/ru" : "/ru" + stripped);
     <title>{title}</title>
     <meta name="description" content={description} />
 
+    {/* Canonical */}
+    <link rel="canonical" href={canonicalUrl} />
+
     {/* hreflang alternates */}
     <link rel="alternate" hreflang="en" href={enUrl} />
     <link rel="alternate" hreflang="ru" href={ruUrl} />
     <link rel="alternate" hreflang="x-default" href={enUrl} />
 
+    {/* Crawler hints */}
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+
     {/* Open Graph */}
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Read Aurelius" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:locale" content={lang === "ru" ? "ru_RU" : "en_US"} />
     <meta property="og:locale:alternate" content={lang === "ru" ? "en_US" : "ru_RU"} />
-    <meta property="og:url" content={lang === "ru" ? ruUrl : enUrl} />
-    <meta property="og:image" content={SITE_ORIGIN + "/android-chrome-512x512.png"} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
 
     {/* Twitter */}
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
+    {/* JSON-LD structured data */}
+    {jsonLd.map(obj => (
+      <script is:inline type="application/ld+json" set:html={JSON.stringify(obj)} />
+    ))}
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -55,7 +81,6 @@ const ruUrl = SITE_ORIGIN + (stripped === "/" ? "/ru" : "/ru" + stripped);
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" href="/favicon.ico" />

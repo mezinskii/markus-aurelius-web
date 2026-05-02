@@ -4,6 +4,7 @@ import Shell from '../Shell';
 import { getAllSayings } from '../../lib/sanity';
 import { romanize, UI, type Lang } from '../../lib/ui';
 import { renderWithFootnotes } from '../../lib/footnotes';
+import { sayingJsonLd, breadcrumbsJsonLd, marcusAureliusPerson, pageUrl } from '../../lib/seo';
 
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
@@ -14,13 +15,29 @@ const langPrefix = lang === 'ru' ? '/ru' : '';
 const pathname = `${langPrefix}/sayings`;
 
 const title = lang === 'ru'
-  ? 'Изречения Марка Аврелия'
-  : 'Sayings of Marcus Aurelius';
+  ? `Изречения Марка Аврелия — ${sayings.length} фрагментов из Диона и Historia Augusta`
+  : `Sayings of Marcus Aurelius — ${sayings.length} Fragments from Dio and the Historia Augusta`;
 const description = lang === 'ru'
-  ? `${sayings.length} коротких фрагментов, записанных древними биографами — реплики, подслушанные в совете, у одра болезни, на поле боя.`
-  : `${sayings.length} short fragments preserved by ancient biographers — remarks overheard at council, the sickbed, the battlefield.`;
+  ? `${sayings.length} коротких изречений Марка Аврелия, сохранённых Дионом Кассием, Historia Augusta и другими — не из «Размышлений». Перевод C. R. Haines (Loeb, 1916), public domain.`
+  : `${sayings.length} short sayings of Marcus Aurelius preserved by Dio Cassius, the Historia Augusta and others — not from the Meditations. C. R. Haines translation (Loeb, 1916), public domain.`;
+
+const url = pageUrl(lang, '/sayings');
+const cleanText = (s: string) => s.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '');
+const jsonLd = [
+  marcusAureliusPerson(),
+  breadcrumbsJsonLd([
+    { name: lang === 'ru' ? 'Главная' : 'Home', url: pageUrl(lang, '/') },
+    { name: lang === 'ru' ? 'Изречения' : 'Sayings', url },
+  ]),
+  ...sayings.slice(0, 30).map(s => sayingJsonLd({
+    text: cleanText(s.text),
+    source: s.source,
+    url: url + `#s${s.order}`,
+    order: s.order,
+  })),
+];
 ---
-<Layout title={title} description={description} lang={lang} basePath="/sayings">
+<Layout title={title} description={description} lang={lang} basePath="/sayings" jsonLd={jsonLd}>
   <Shell route="sayings" lang={lang} pathname={pathname} client:load>
     <main class="wrap">
 

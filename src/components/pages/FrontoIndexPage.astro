@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
 import { getFrontoLettersIndex } from '../../lib/sanity';
 import { romanize, UI, type Lang } from '../../lib/ui';
+import { breadcrumbsJsonLd, marcusAureliusPerson, frontoPerson, pageUrl, articleJsonLd } from '../../lib/seo';
 
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
@@ -17,13 +18,24 @@ function stripFn(text: string) {
 }
 
 const title = lang === 'ru'
-  ? 'Письма — Фронтон и Марк Аврелий'
-  : 'Letters — Fronto & Marcus Aurelius';
+  ? `Переписка Марка Аврелия с Фронтоном — ${letters.length} писем (Loeb)`
+  : `Letters of Marcus Aurelius and Fronto — ${letters.length} Letters (Loeb)`;
 const description = lang === 'ru'
-  ? `${letters.length} писем и фрагментов между Марком Аврелием и его учителем риторики Марком Корнелием Фронтоном. Перевод К. Р. Хайнса.`
-  : `${letters.length} letters between Marcus Aurelius and his rhetoric teacher Marcus Cornelius Fronto. C. R. Haines translation.`;
+  ? `${letters.length} сохранившихся писем между Марком Аврелием и его учителем риторики Марком Корнелием Фронтоном (138–166 гг.). Перевод C. R. Haines (Loeb Classical Library, 1919). Public domain.`
+  : `${letters.length} surviving letters between Marcus Aurelius and his rhetoric teacher Marcus Cornelius Fronto (138–166 CE). C. R. Haines translation (Loeb Classical Library, 1919). Public domain.`;
+
+const url = pageUrl(lang, '/fronto');
+const jsonLd = [
+  marcusAureliusPerson(),
+  frontoPerson(),
+  articleJsonLd({ url, headline: title, description, lang }),
+  breadcrumbsJsonLd([
+    { name: lang === 'ru' ? 'Главная' : 'Home', url: pageUrl(lang, '/') },
+    { name: lang === 'ru' ? 'Переписка' : 'Letters', url },
+  ]),
+];
 ---
-<Layout title={title} description={description} lang={lang} basePath="/fronto">
+<Layout title={title} description={description} lang={lang} basePath="/fronto" jsonLd={jsonLd}>
   <Shell route="fronto" lang={lang} pathname={pathname} client:load>
     <main class="wrap">
       <div class="crumbs">

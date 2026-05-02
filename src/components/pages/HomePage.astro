@@ -4,6 +4,10 @@ import Shell from '../Shell';
 import RandomPassage from '../RandomPassage';
 import { getAllMeditationsPassages } from '../../lib/sanity';
 import { BOOK_META, romanize, UI, type Lang } from '../../lib/ui';
+import {
+  websiteJsonLd, publisherJsonLd, marcusAureliusPerson, meditationsBookJsonLd,
+  pageUrl,
+} from '../../lib/seo';
 
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
@@ -16,11 +20,21 @@ const langPrefix = lang === 'ru' ? '/ru' : '';
 const pathname = lang === 'ru' ? '/ru' : '/';
 
 const title = lang === 'ru'
-  ? 'Размышления — Марк Аврелий'
-  : 'Meditations — Marcus Aurelius';
-const description = t.home_sub;
+  ? 'Размышления — Марк Аврелий · читать онлайн (перевод Роговина)'
+  : 'Meditations — Marcus Aurelius · Read Online (George Long translation)';
+const description = lang === 'ru'
+  ? 'Полный текст «Размышлений» Марка Аврелия в переводе Семёна Роговина (1914). Двенадцать книг, 487 пассажей, прямая ссылка на каждый. Public domain, без рекламы.'
+  : 'The complete Meditations of Marcus Aurelius in the public-domain George Long translation (1862). Twelve books, 487 passages, every passage a direct link. No ads.';
+
+const url = pageUrl(lang, '/');
+const jsonLd = [
+  websiteJsonLd(lang),
+  publisherJsonLd(),
+  marcusAureliusPerson(),
+  meditationsBookJsonLd(lang),
+];
 ---
-<Layout title={title} description={description} lang={lang} basePath="/">
+<Layout title={title} description={description} lang={lang} basePath="/" jsonLd={jsonLd}>
   <Shell route="home" lang={lang} pathname={pathname} client:load>
     <main class="wrap">
       <section class="home-hero">

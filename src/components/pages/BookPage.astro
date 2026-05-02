@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
 import { getMeditationsBook } from '../../lib/sanity';
 import { BOOK_META, romanize, UI, type Lang } from '../../lib/ui';
+import { breadcrumbsJsonLd, meditationsBookJsonLd, pageUrl, abs } from '../../lib/seo';
 
 interface Props { lang: Lang; bookNum: number; }
 const { lang, bookNum } = Astro.props;
@@ -21,12 +22,37 @@ function stripFn(text: string) {
   return text.replace(/\{\{fn:\d+\}\}/g, '').replace(/\[\d+\]/g, '');
 }
 
+const roman = romanize(bookNum);
 const title = lang === 'ru'
-  ? `Книга ${romanize(bookNum)} — Размышления`
-  : `Book ${romanize(bookNum)} — Meditations`;
-const description = `${meta.note[lang]} ${passages.length} ${lang === 'ru' ? 'пассажей' : 'passages'}.`;
+  ? `Книга ${roman} «Размышлений» Марка Аврелия — читать онлайн`
+  : `Book ${roman} of the Meditations of Marcus Aurelius — Read Online`;
+const description = lang === 'ru'
+  ? `Книга ${roman} (${bookNum}) «Размышлений» Марка Аврелия. ${passages.length} пассажей в переводе Семёна Роговина. ${meta.note.ru}`
+  : `Book ${roman} (${bookNum}) of Marcus Aurelius's Meditations. ${passages.length} passages in the George Long translation. ${meta.note.en}`;
+
+const url = pageUrl(lang, `/book/${bookNum}`);
+const chapterJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Chapter',
+  '@id': url + '#chapter',
+  name: title,
+  position: bookNum,
+  url,
+  inLanguage: lang === 'ru' ? 'ru' : 'en',
+  isPartOf: { '@id': abs('/#book-meditations') },
+  description,
+};
+const jsonLd = [
+  meditationsBookJsonLd(lang),
+  chapterJsonLd,
+  breadcrumbsJsonLd([
+    { name: lang === 'ru' ? 'Главная' : 'Home', url: pageUrl(lang, '/') },
+    { name: lang === 'ru' ? 'Оглавление' : 'Contents', url: pageUrl(lang, '/contents') },
+    { name: lang === 'ru' ? `Книга ${roman}` : `Book ${roman}`, url },
+  ]),
+];
 ---
-<Layout title={title} description={description} lang={lang} basePath={`/book/${bookNum}`}>
+<Layout title={title} description={description} lang={lang} basePath={`/book/${bookNum}`} jsonLd={jsonLd}>
   <Shell route="book" lang={lang} pathname={pathname} client:load>
     <main class="wrap">
       <div class="crumbs">

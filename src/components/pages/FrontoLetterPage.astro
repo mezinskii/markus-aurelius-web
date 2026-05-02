@@ -5,6 +5,7 @@ import PassageTools from '../PassageTools';
 import { type FrontoPassage } from '../../lib/sanity';
 import { romanize, UI, type Lang } from '../../lib/ui';
 import { renderWithFootnotes } from '../../lib/footnotes';
+import { letterJsonLd, breadcrumbsJsonLd, pageUrl } from '../../lib/seo';
 
 interface Props {
   lang: Lang;
@@ -31,12 +32,27 @@ function parseSections(text: string) {
 const fullText = sections.map(s => s.text).join('\n\n---\n\n');
 const cleanText = (s: string) => s.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '');
 
+const roman = romanize(letterNum);
 const title = lang === 'ru'
-  ? `Письмо ${romanize(letterNum)} — Фронтон и Марк Аврелий`
-  : `Letter ${romanize(letterNum)} — Fronto & Marcus Aurelius`;
+  ? `Письмо ${roman} — Марк Аврелий и Фронтон`
+  : `Letter ${roman} — Marcus Aurelius and Fronto`;
 const description = `${sender} → ${addressee ?? 'Fronto'}. ${cleanText(first.text).slice(0, 140)}…`;
+
+const url = pageUrl(lang, `/fronto/${letterNum}`);
+const jsonLd = [
+  letterJsonLd({
+    lang, letterNum, romanLetter: roman, sender, addressee,
+    text: cleanText(fullText),
+    url,
+  }),
+  breadcrumbsJsonLd([
+    { name: lang === 'ru' ? 'Главная' : 'Home', url: pageUrl(lang, '/') },
+    { name: lang === 'ru' ? 'Переписка' : 'Letters', url: pageUrl(lang, '/fronto') },
+    { name: lang === 'ru' ? `Письмо ${roman}` : `Letter ${roman}`, url },
+  ]),
+];
 ---
-<Layout title={title} description={description} lang={lang} basePath={`/fronto/${letterNum}`}>
+<Layout title={title} description={description} lang={lang} basePath={`/fronto/${letterNum}`} jsonLd={jsonLd}>
   <Shell route="letter" lang={lang} pathname={pathname} client:load>
     <div class="passage-screen">
 

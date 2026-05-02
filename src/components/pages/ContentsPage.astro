@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
 import { BOOK_META, romanize, UI, type Lang } from '../../lib/ui';
+import { breadcrumbsJsonLd, meditationsBookJsonLd, pageUrl } from '../../lib/seo';
 
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
@@ -11,13 +12,22 @@ const langPrefix = lang === 'ru' ? '/ru' : '';
 const pathname = `${langPrefix}/contents`;
 
 const title = lang === 'ru'
-  ? 'Оглавление — Размышления'
-  : 'Contents — Meditations';
+  ? 'Оглавление «Размышлений» Марка Аврелия — все 12 книг'
+  : 'Contents — Meditations of Marcus Aurelius (All 12 Books)';
 const description = lang === 'ru'
-  ? 'Двенадцать книг «Размышлений» Марка Аврелия. 487 пассажей в переводе Семёна Роговина.'
-  : 'The twelve books of Marcus Aurelius\'s Meditations. 487 passages in George Long\'s translation.';
+  ? 'Оглавление «Размышлений» Марка Аврелия: двенадцать книг, 487 пассажей в переводе Семёна Роговина (1914). Public domain.'
+  : 'Contents of Marcus Aurelius\'s Meditations: twelve books, 487 passages in the George Long translation (1862). Public domain.';
+
+const url = pageUrl(lang, '/contents');
+const jsonLd = [
+  meditationsBookJsonLd(lang),
+  breadcrumbsJsonLd([
+    { name: lang === 'ru' ? 'Главная' : 'Home', url: pageUrl(lang, '/') },
+    { name: lang === 'ru' ? 'Оглавление' : 'Contents', url },
+  ]),
+];
 ---
-<Layout title={title} description={description} lang={lang} basePath="/contents">
+<Layout title={title} description={description} lang={lang} basePath="/contents" jsonLd={jsonLd}>
   <Shell route="contents" lang={lang} pathname={pathname} client:load>
     <main class="wrap">
       <div class="crumbs">

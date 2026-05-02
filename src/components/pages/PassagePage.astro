@@ -5,6 +5,7 @@ import PassageTools from '../PassageTools';
 import { getMeditationsBook, type MeditationPassage } from '../../lib/sanity';
 import { BOOK_META, romanize, UI, type Lang } from '../../lib/ui';
 import { renderWithFootnotes } from '../../lib/footnotes';
+import { passageJsonLd, breadcrumbsJsonLd, pageUrl } from '../../lib/seo';
 
 interface Props {
   lang: Lang;
@@ -42,12 +43,31 @@ const restParas = paragraphs.slice(1);
 
 const cleanText = (s: string) => s.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '');
 
+const roman = romanize(bookNum);
 const title = lang === 'ru'
-  ? `${romanize(bookNum)}.${section} — Размышления`
-  : `${romanize(bookNum)}.${section} — Meditations`;
+  ? `Размышления ${roman}.${section} — Марк Аврелий`
+  : `Meditations ${roman}.${section} — Marcus Aurelius`;
 const description = cleanText(passage.text).slice(0, 160) + (passage.text.length > 160 ? '…' : '');
+
+const url = pageUrl(lang, `/passage/${bookNum}/${section}`);
+const translationYear = passage.language === 'en' ? '1862' : '1914';
+const jsonLd = [
+  passageJsonLd({
+    lang, bookNum, romanBook: roman, section,
+    text: cleanText(passage.text),
+    translator: passage.translator,
+    translationYear,
+    url,
+  }),
+  breadcrumbsJsonLd([
+    { name: lang === 'ru' ? 'Главная' : 'Home', url: pageUrl(lang, '/') },
+    { name: lang === 'ru' ? 'Оглавление' : 'Contents', url: pageUrl(lang, '/contents') },
+    { name: lang === 'ru' ? `Книга ${roman}` : `Book ${roman}`, url: pageUrl(lang, `/book/${bookNum}`) },
+    { name: `${roman}.${section}`, url },
+  ]),
+];
 ---
-<Layout title={title} description={description} lang={lang} basePath={`/passage/${bookNum}/${section}`}>
+<Layout title={title} description={description} lang={lang} basePath={`/passage/${bookNum}/${section}`} jsonLd={jsonLd}>
   <Shell route="passage" lang={lang} pathname={pathname} client:load>
     <div class="passage-screen">
 
