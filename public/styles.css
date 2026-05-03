@@ -1018,12 +1018,86 @@ a { color: inherit; text-decoration: none; }
   max-width: 100%;
   min-height: 0;
 }
+/* Both portrait layers are absolutely stacked so opacity controls them directly. */
 .about-portrait img {
-  display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
+  display: block;
   object-fit: cover;
   object-position: center top;
+}
+.about-portrait .portrait-bust {
+  z-index: 1;
+  animation: portraitBustGlitch 14s steps(1, end) infinite;
+}
+.about-portrait .portrait-real {
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  animation: portraitRealGlitch 14s steps(1, end) infinite;
+  filter: saturate(0.94) contrast(0.98);
+}
+.about-portrait::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 50% 35%, color-mix(in oklch, var(--paper) 70%, transparent) 0%, transparent 60%),
+    linear-gradient(135deg, transparent 25%, color-mix(in oklch, var(--ochre-wash) 70%, transparent) 100%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: portraitHaze 14s ease-in-out infinite;
+}
+
+/* Bust: idle full → glitch flicker out → fully gone during hold → glitch flicker in. */
+@keyframes portraitBustGlitch {
+  0%, 55%   { opacity: 1; filter: none; }
+  56%       { opacity: 0.3;  filter: blur(1.5px); }
+  57%       { opacity: 0.9;  filter: none; }
+  58%       { opacity: 0.05; filter: blur(2.5px); }
+  59%       { opacity: 0.6;  filter: blur(0.5px); }
+  60%, 78%  { opacity: 0;    filter: none; }
+  79%       { opacity: 0.5;  filter: blur(2px); }
+  80%       { opacity: 0.05; filter: none; }
+  81%       { opacity: 0.8;  filter: blur(0.6px); }
+  82%       { opacity: 0.2;  filter: blur(1.5px); }
+  83%       { opacity: 0.95; filter: none; }
+  84%, 100% { opacity: 1;    filter: none; }
+}
+
+/* Real: idle hidden → glitch flicker in → fully visible during hold → glitch flicker out. */
+@keyframes portraitRealGlitch {
+  0%, 55%   { opacity: 0; }
+  56%       { opacity: 0.6; }
+  57%       { opacity: 0.1; }
+  58%       { opacity: 0.95; }
+  59%       { opacity: 0.4; }
+  60%, 78%  { opacity: 1; }
+  79%       { opacity: 0.4; }
+  80%       { opacity: 0.95; }
+  81%       { opacity: 0.15; }
+  82%       { opacity: 0.7; }
+  83%       { opacity: 0.05; }
+  84%, 100% { opacity: 0; }
+}
+
+/* Haze: peaks during the two glitch transitions, faint during hold. */
+@keyframes portraitHaze {
+  0%, 54%, 86%, 100% { opacity: 0; }
+  56%, 60%           { opacity: 0.7; }
+  62%, 76%           { opacity: 0.12; }
+  80%, 84%           { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-portrait .portrait-bust,
+  .about-portrait .portrait-real,
+  .about-portrait::after { animation: none; }
+  .about-portrait .portrait-real { opacity: 0; }
 }
 .about-bio-head {
   font-family: var(--serif);
