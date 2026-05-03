@@ -151,11 +151,12 @@ export interface Saying {
   footnotes: Array<{ key: string; text: string }> | null;
 }
 
-export async function getAllSayings(): Promise<Saying[]> {
+export async function getAllSayings(lang: 'en' | 'ru' = 'en'): Promise<Saying[]> {
   return client.fetch<Saying[]>(
-    `*[_type=="passage" && work._ref=="work.marcus-sayings"]
+    `*[_type=="passage" && work._ref=="work.marcus-sayings" && language==$lang]
      | order(order asc)
      {_id, passageId, chapter, order, source, text, translator, language, footnotes}`,
+    { lang },
   );
 }
 

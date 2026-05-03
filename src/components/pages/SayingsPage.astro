@@ -10,7 +10,7 @@ interface Props { lang: Lang; }
 const { lang } = Astro.props;
 const t = UI[lang];
 
-const sayings = await getAllSayings();
+const sayings = await getAllSayings(lang);
 const langPrefix = lang === 'ru' ? '/ru' : '';
 const pathname = `${langPrefix}/sayings`;
 
@@ -65,7 +65,7 @@ const jsonLd = [
               ? <>{sayings.length} коротких {fragmentWord(sayings.length, 'ru')} — реплики Марка Аврелия,
                 подслушанные в совете, у одра болезни, на поле боя. Сохранились у Диона Кассия,
                 в <em>Historia Augusta</em> и у других античных биографов; не вошли в <em>«Размышления»</em>.
-                Собраны в приложении к Loeb (Хайнс, 1916). Русского перевода пока нет — тексты на английском.</>
+                Собраны в приложении к Loeb (Хайнс, 1916), русский перевод по этому изданию.</>
               : <>{sayings.length} short fragments — remarks of Marcus Aurelius overheard at council,
                 the sickbed, the battlefield. Preserved by Dio Cassius, the <em>Historia Augusta</em>,
                 and other ancient biographers; not from the <em>Meditations</em>.
