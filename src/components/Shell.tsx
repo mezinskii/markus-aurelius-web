@@ -11,14 +11,9 @@ interface Props {
 }
 
 /** Build the equivalent URL in the other language. */
-function otherLangHref(lang: Lang, pathname: string): string {
-  // Strip /ru prefix if present
+function localizedHref(pathname: string, target: Lang): string {
   const stripped = pathname.replace(/^\/ru(?=\/|$)/, '') || '/';
-  if (lang === 'en') {
-    // Going to RU: prepend /ru (root '/' becomes '/ru')
-    return stripped === '/' ? '/ru' : '/ru' + stripped;
-  }
-  // Going to EN: stripped is already correct
+  if (target === 'ru') return stripped === '/' ? '/ru' : '/ru' + stripped;
   return stripped;
 }
 
@@ -37,15 +32,15 @@ export default function Shell({ route, lang, pathname, children }: Props) {
     localStorage.setItem('lang', lang);
   }, [lang]);
 
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
+  const setThemeMode = (next: 'light' | 'dark') => {
+    if (next === theme) return;
     setTheme(next);
     localStorage.setItem('theme', next);
     document.documentElement.setAttribute('data-theme', next);
   };
 
-  const otherLang: Lang = lang === 'en' ? 'ru' : 'en';
-  const langHref = otherLangHref(lang, pathname);
+  const enHref = localizedHref(pathname, 'en');
+  const ruHref = localizedHref(pathname, 'ru');
 
   const t = UI[lang];
 
@@ -114,17 +109,52 @@ export default function Shell({ route, lang, pathname, children }: Props) {
           </nav>
 
           <div className="top-tools">
-            <button className="icon-btn" onClick={() => setSearchOpen(true)} title={t.search} aria-label={t.search}>
+            {/* <button className="icon-btn" onClick={() => setSearchOpen(true)} title={t.search} aria-label={t.search}>
               <SearchIcon />
-            </button>
-            <a className="lang-toggle" href={langHref} title="Language" hrefLang={otherLang}>
-              <span className={lang === 'en' ? 'on' : ''}>EN</span>
-              <span style={{ margin: '0 4px' }}>/</span>
-              <span className={lang === 'ru' ? 'on' : ''}>RU</span>
-            </a>
-            <button className="icon-btn" onClick={toggleTheme} title="Theme" aria-label="Toggle theme">
-              {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-            </button>
+            </button> */}
+
+            <div className="seg-toggle" role="group" aria-label="Theme">
+              <button
+                type="button"
+                className={theme === 'light' ? 'active' : ''}
+                onClick={() => setThemeMode('light')}
+                aria-label="Light theme"
+                aria-pressed={theme === 'light'}
+                title="Light"
+              >
+                <SunIcon />
+              </button>
+              <button
+                type="button"
+                className={theme === 'dark' ? 'active' : ''}
+                onClick={() => setThemeMode('dark')}
+                aria-label="Dark theme"
+                aria-pressed={theme === 'dark'}
+                title="Dark"
+              >
+                <MoonIcon />
+              </button>
+            </div>
+
+            <div className="seg-toggle lang" role="group" aria-label="Language">
+              <a
+                className={lang === 'en' ? 'active' : ''}
+                href={enHref}
+                hrefLang="en"
+                aria-current={lang === 'en' ? 'page' : undefined}
+              >
+                EN
+              </a>
+              <a
+                className={lang === 'ru' ? 'active' : ''}
+                href={ruHref}
+                hrefLang="ru"
+                aria-current={lang === 'ru' ? 'page' : undefined}
+              >
+                RU
+              </a>
+            </div>
+
             <button
               className="icon-btn menu-btn"
               onClick={() => setMenuOpen(o => !o)}
@@ -238,7 +268,7 @@ function SearchOverlay({ lang, onClose }: { lang: Lang; onClose: () => void; set
   return (
     <div className="search-overlay" onClick={onClose}>
       <div className="search-panel" onClick={e => e.stopPropagation()}>
-        <div className="search-head">
+        {/* <div className="search-head">
           <SearchIcon style={{ width: 18, height: 18, color: 'var(--text-mute)', flexShrink: 0 }} />
           <input
             autoFocus
@@ -248,7 +278,7 @@ function SearchOverlay({ lang, onClose }: { lang: Lang; onClose: () => void; set
             onChange={e => setQ(e.target.value)}
           />
           <span className="search-esc">ESC</span>
-        </div>
+        </div> */}
         <div className="search-results">
           {q.trim()
             ? <SearchResults q={q.trim()} lang={lang} onClose={onClose} />
@@ -338,7 +368,7 @@ function SearchIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 function SunIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} style={{ width: 18, height: 18 }}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
       <circle cx="12" cy="12" r="4" />
       <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
     </svg>
@@ -346,7 +376,7 @@ function SunIcon() {
 }
 function MoonIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} style={{ width: 18, height: 18 }}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
     </svg>
   );

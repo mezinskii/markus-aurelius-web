@@ -170,22 +170,46 @@ a { color: inherit; text-decoration: none; }
 }
 .icon-btn svg { width: 18px; height: 18px; stroke-width: 1.5; }
 
-.lang-toggle {
-  font-family: var(--sans);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-  padding: 6px 10px;
-  border-radius: 8px;
+/* Segmented pill toggle — used for theme + language */
+.seg-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
   border: 1px solid var(--rule);
-  background: transparent;
-  cursor: pointer;
-  transition: all .18s;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--bg) 55%, var(--stone) 45%);
 }
-.lang-toggle:hover { color: var(--text); border-color: var(--rule-strong); }
-.lang-toggle span { opacity: 0.35; }
-.lang-toggle span.on { opacity: 1; color: var(--ochre-deep); font-weight: 600; }
+.seg-toggle button,
+.seg-toggle a {
+  border: 0;
+  background: transparent;
+  width: 28px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-mute);
+  cursor: pointer;
+  transition: color .16s, background .16s;
+  text-decoration: none;
+  padding: 0;
+}
+.seg-toggle.lang a { width: auto; padding: 0 10px; min-width: 28px; }
+.seg-toggle button svg { width: 14px; height: 14px; stroke-width: 1.6; }
+.seg-toggle button:hover,
+.seg-toggle a:hover { color: var(--text); }
+.seg-toggle .active,
+.seg-toggle a.active {
+  background: var(--text);
+  color: var(--bg);
+}
+.seg-toggle .active:hover,
+.seg-toggle a.active:hover { color: var(--bg); }
 
 /* ------------------------------------------------------------------
    Layout helpers

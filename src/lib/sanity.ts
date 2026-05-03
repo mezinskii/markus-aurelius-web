@@ -86,41 +86,47 @@ export async function getMeditationsPassage(
 // ─── Fronto queries ────────────────────────────────────────────────────────────
 
 export async function getFrontoLettersIndex(): Promise<FrontoLetterIndex[]> {
-  // Get first section of each letter for index display
   const rows = await client.fetch<Array<{
     letter: number;
+    section: string;
+    text: string;
     sender: string;
     addressee: string | null;
-    text: string;
   }>>(
-    `*[_type=="passage" && work._ref=="work.fronto-correspondence" && section=="1"]
-     | order(letter asc)
+    `*[_type=="passage" && work._ref=="work.fronto-correspondence"]
      {
        letter,
+       section,
+       text,
        "sender": author->name.en,
-       "addressee": addressee->name.en,
-       text
+       "addressee": addressee->name.en
      }`,
   );
 
-  // Count sections per letter with a separate targeted query
-  const allLetterNums = rows.map(r => r.letter);
-  const allPassages = await client.fetch<Array<{ letter: number }>>(
-    `*[_type=="passage" && work._ref=="work.fronto-correspondence"] { letter }`,
-  );
-
-  const countMap = new Map<number, number>();
-  for (const p of allPassages) {
-    if (p.letter != null) countMap.set(p.letter, (countMap.get(p.letter) ?? 0) + 1);
+  const byLetter = new Map<number, typeof rows>();
+  for (const r of rows) {
+    if (r.letter == null) continue;
+    if (!byLetter.has(r.letter)) byLetter.set(r.letter, []);
+    byLetter.get(r.letter)!.push(r);
   }
 
-  return rows.map(r => ({
-    letter: r.letter,
-    sender: r.sender,
-    addressee: r.addressee,
-    preview: r.text ? r.text.replace(/\{\{fn:\d+\}\}/g, '').slice(0, 180) : '',
-    sectionCount: countMap.get(r.letter) ?? 1,
-  }));
+  // Sort sections numerically (section IDs are strings like "1","2","10")
+  const sectionNum = (s: string) => parseInt(s, 10);
+
+  const result: FrontoLetterIndex[] = [];
+  for (const letter of [...byLetter.keys()].sort((a, b) => a - b)) {
+    const sections = byLetter.get(letter)!.slice().sort((a, b) => sectionNum(a.section) - sectionNum(b.section));
+    const first = sections[0];
+    result.push({
+      letter,
+      sender: first.sender,
+      addressee: first.addressee,
+      preview: first.text ? first.text.replace(/\{\{fn:\d+\}\}/g, '').slice(0, 180) : '',
+      sectionCount: sections.length,
+    });
+  }
+
+  return result;
 }
 
 export async function getFrontoLetter(letter: number): Promise<FrontoPassage[]> {
