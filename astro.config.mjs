@@ -7,6 +7,7 @@ const SITE = process.env.PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://readaur
 
 export default defineConfig({
   site: SITE,
+  trailingSlash: 'never',
   integrations: [
     react(),
     sitemap({
