@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useMemo, type ReactNode } from 'react';
 import { UI, type Lang } from '../lib/ui';
+import { search, buildHighlightedUrl, type IndexEntry, type SearchHit } from '../lib/search';
 
 interface Props {
   route: 'home' | 'contents' | 'about' | 'fronto' | 'book' | 'passage' | 'letter' | 'sayings';
@@ -59,6 +60,27 @@ export default function Shell({ route, lang, pathname, children }: Props) {
     return () => window.removeEventListener('keydown', h);
   }, []);
 
+  // Highlight ?q=… on the destination page (search-result deep link).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    if (!q) return;
+    // Only highlight inside text-content areas.
+    const targets = document.querySelectorAll<HTMLElement>('.passage-body, .saying-card-text, .letter-section');
+    if (!targets.length) return;
+    let firstMark: HTMLElement | null = null;
+    for (const root of targets) {
+      const m = highlightMatchesIn(root, q);
+      if (!firstMark && m) firstMark = m;
+    }
+    if (firstMark) {
+      // Defer to allow layout to settle before scrolling.
+      requestAnimationFrame(() => {
+        firstMark!.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  }, []);
+
   // Global footnote popover: any <sup class="fn-sup" data-fn-text="..."> opens a popover
   useEffect(() => {
     const openFromElement = (el: HTMLElement) => {
@@ -109,9 +131,9 @@ export default function Shell({ route, lang, pathname, children }: Props) {
           </nav>
 
           <div className="top-tools">
-            {/* <button className="icon-btn" onClick={() => setSearchOpen(true)} title={t.search} aria-label={t.search}>
+            <button className="icon-btn" onClick={() => setSearchOpen(true)} title={t.search} aria-label={t.search}>
               <SearchIcon />
-            </button> */}
+            </button>
 
             <div className="seg-toggle" role="group" aria-label="Theme">
               <button
@@ -261,82 +283,273 @@ function FootnotePopover({ fnKey, text, anchorRect, onClose }: {
 
 // ─── Search overlay ────────────────────────────────────────────────────────────
 
+/** Module-level cache: index per language is fetched once per session. */
+const indexCache: Partial<Record<Lang, Promise<IndexEntry[]>>> = {};
+
+function loadIndex(lang: Lang): Promise<IndexEntry[]> {
+  if (!indexCache[lang]) {
+    indexCache[lang] = fetch(`/search-index-${lang}.json`)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('index fetch failed')))
+      .catch(err => {
+        // Reset on error so the next attempt can retry.
+        indexCache[lang] = undefined;
+        throw err;
+      });
+  }
+  return indexCache[lang]!;
+}
+
 function SearchOverlay({ lang, onClose }: { lang: Lang; onClose: () => void; setToast: (s: string) => void }) {
   const t = UI[lang];
   const [q, setQ] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
+  const [index, setIndex] = useState<IndexEntry[] | null>(null);
+  const [error, setError] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Lazy-load the prebuilt JSON index on open.
+  useEffect(() => {
+    let cancelled = false;
+    loadIndex(lang)
+      .then(data => { if (!cancelled) setIndex(data); })
+      .catch(() => { if (!cancelled) setError(true); });
+    return () => { cancelled = true; };
+  }, [lang]);
+
+  // Debounce query → search runs after 80ms of stillness.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedQ(q), 80);
+    return () => clearTimeout(id);
+  }, [q]);
+
+  const hits: SearchHit[] = useMemo(() => {
+    if (!index || !debouncedQ.trim()) return [];
+    return search(index, debouncedQ, 40);
+  }, [index, debouncedQ]);
+
+  // Keep keyboard focus index in range when results change.
+  useEffect(() => { setActiveIdx(0); }, [debouncedQ, hits.length]);
+
+  // Arrow-key navigation through results.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!hits.length) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveIdx(i => (i + 1) % hits.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIdx(i => (i - 1 + hits.length) % hits.length);
+      } else if (e.key === 'Enter') {
+        const hit = hits[activeIdx];
+        if (hit) {
+          e.preventDefault();
+          window.location.href = buildHighlightedUrl(hit.entry.url, debouncedQ);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [hits, activeIdx, debouncedQ]);
+
+  // Group results by type for a portal-style sectioned view.
+  const grouped = useMemo(() => {
+    const g: Record<'m' | 'l' | 's', SearchHit[]> = { m: [], l: [], s: [] };
+    for (const h of hits) g[h.entry.type].push(h);
+    return g;
+  }, [hits]);
 
   return (
     <div className="search-overlay" onClick={onClose}>
       <div className="search-panel" onClick={e => e.stopPropagation()}>
-        {/* <div className="search-head">
+        <div className="search-head">
           <SearchIcon style={{ width: 18, height: 18, color: 'var(--text-mute)', flexShrink: 0 }} />
           <input
+            ref={inputRef}
             autoFocus
             className="search-input"
             placeholder={t.search_placeholder}
             value={q}
             onChange={e => setQ(e.target.value)}
+            spellCheck={false}
+            autoComplete="off"
           />
           <span className="search-esc">ESC</span>
-        </div> */}
+        </div>
         <div className="search-results">
-          {q.trim()
-            ? <SearchResults q={q.trim()} lang={lang} onClose={onClose} />
-            : <div className="search-empty">{t.search_hint}</div>}
+          {!debouncedQ.trim() ? (
+            <div className="search-empty">{t.search_hint}</div>
+          ) : error ? (
+            <div className="search-empty">{lang === 'ru' ? 'Не удалось загрузить индекс.' : 'Could not load index.'}</div>
+          ) : !index ? (
+            <div className="search-empty" style={{ padding: '32px 22px' }}>…</div>
+          ) : !hits.length ? (
+            <div className="search-empty">{t.search_empty}</div>
+          ) : (
+            <SearchHitList
+              grouped={grouped}
+              total={hits.length}
+              query={debouncedQ}
+              lang={lang}
+              activeIdx={activeIdx}
+              flatHits={hits}
+              onClose={onClose}
+            />
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function SearchResults({ q, lang, onClose }: { q: string; lang: Lang; onClose: () => void }) {
-  const [results, setResults] = useState<Array<{ url: string; ref: string; preview: string }>>([]);
-  const [loading, setLoading] = useState(true);
+function SearchHitList({
+  grouped, total, query, lang, activeIdx, flatHits, onClose,
+}: {
+  grouped: Record<'m' | 'l' | 's', SearchHit[]>;
+  total: number;
+  query: string;
+  lang: Lang;
+  activeIdx: number;
+  flatHits: SearchHit[];
+  onClose: () => void;
+}) {
   const t = UI[lang];
+  const sectionLabels: Record<'m' | 'l' | 's', string> = {
+    m: lang === 'ru' ? 'Размышления' : 'Meditations',
+    l: lang === 'ru' ? 'Письма' : 'Letters',
+    s: lang === 'ru' ? 'Изречения' : 'Sayings',
+  };
+  const order: Array<'m' | 'l' | 's'> = ['m', 'l', 's'];
 
+  // Map flat-list index -> hit for the active highlight.
+  const activeHit = flatHits[activeIdx];
+
+  // Auto-scroll active result into view.
+  const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    setLoading(true);
-    // Client-side search via Sanity CDN (no token needed for public dataset reads via CDN)
-    const needle = q.toLowerCase();
-    fetch(
-      `https://13u931c6.apicdn.sanity.io/v2026-04-20/data/query/production?query=${encodeURIComponent(
-        `*[_type=="passage" && work._ref=="work.meditations" && translator=="${lang === 'ru' ? 'Роговин' : 'George Long'}" && text match $q][0..29]{passageId, book, section, text}`
-      )}&%24q=%22${encodeURIComponent(q)}*%22`
-    )
-      .then(r => r.json())
-      .then(data => {
-        const rows = (data.result ?? []) as Array<{ passageId: string; book: number; section: string; text: string }>;
-        const prefix = lang === 'ru' ? '/ru' : '';
-        const refLabel = lang === 'ru' ? 'Книга' : 'Book';
-        setResults(rows.map(p => ({
-          url: `${prefix}/passage/${p.book}/${p.section}`,
-          ref: `${refLabel} ${p.book} · ${p.section}`,
-          preview: (() => {
-            const idx = p.text.toLowerCase().indexOf(needle);
-            if (idx < 0) return p.text.slice(0, 160);
-            const start = Math.max(0, idx - 40);
-            return (start > 0 ? '… ' : '') + p.text.slice(start, idx + needle.length + 120);
-          })(),
-        })));
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [q, lang]);
-
-  if (loading) return <div className="search-empty" style={{ padding: '32px 22px' }}>…</div>;
-  if (!results.length) return <div className="search-empty">{t.search_empty}</div>;
+    if (!activeHit || !listRef.current) return;
+    const el = listRef.current.querySelector(`[data-hit-url="${activeHit.entry.url}"]`) as HTMLElement | null;
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }, [activeHit]);
 
   return (
-    <>
-      <div className="search-meta">{results.length} {t.search_results}</div>
-      {results.map(r => (
-        <a key={r.url} className="search-result" href={r.url} onClick={onClose}>
-          <div className="search-result-ref">{r.ref}</div>
-          <p className="search-result-text">{r.preview}</p>
-        </a>
-      ))}
-    </>
+    <div ref={listRef}>
+      <div className="search-meta">{total} {t.search_results}</div>
+      {order.map(typeKey => {
+        const list = grouped[typeKey];
+        if (!list.length) return null;
+        return (
+          <div key={typeKey} className="search-group">
+            <div className="search-group-head">{sectionLabels[typeKey]} <span>· {list.length}</span></div>
+            {list.map(h => {
+              const url = buildHighlightedUrl(h.entry.url, query);
+              const isActive = activeHit === h;
+              return (
+                <a
+                  key={h.entry.url + ':' + h.entry.ref}
+                  data-hit-url={h.entry.url}
+                  className={`search-result${isActive ? ' search-result--active' : ''}`}
+                  href={url}
+                  onClick={onClose}
+                >
+                  <div className="search-result-ref">
+                    <span className={`search-badge search-badge--${typeKey}`}>{badgeChar(typeKey)}</span>
+                    {h.entry.ref}
+                    {h.entry.meta && <span className="search-result-meta"> · {h.entry.meta}</span>}
+                  </div>
+                  <p
+                    className="search-result-text"
+                    dangerouslySetInnerHTML={{ __html: h.snippetHtml }}
+                  />
+                </a>
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
   );
+}
+
+function badgeChar(type: 'm' | 'l' | 's'): string {
+  return type === 'm' ? 'M' : type === 'l' ? 'L' : 'S';
+}
+
+// ─── In-page match highlighting ────────────────────────────────────────────────
+
+/**
+ * Walks all text nodes in `root` (skipping <sup>/<script>/<style>/existing <mark>)
+ * and wraps each query-word occurrence in a <mark class="hl-match">.
+ * Returns the first <mark> created, or null if nothing matched.
+ */
+function highlightMatchesIn(root: HTMLElement, query: string): HTMLElement | null {
+  const words = Array.from(new Set(
+    query.toLowerCase().replace(/ё/g, 'е')
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter(w => w.length > 1),
+  )).sort((a, b) => b.length - a.length); // longer first to avoid partial overshadowing
+  if (!words.length) return null;
+
+  const SKIP_TAGS = new Set(['SUP', 'SCRIPT', 'STYLE', 'MARK', 'INPUT', 'TEXTAREA', 'BUTTON']);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      let p = node.parentElement;
+      while (p && p !== root) {
+        if (SKIP_TAGS.has(p.tagName)) return NodeFilter.FILTER_REJECT;
+        p = p.parentElement;
+      }
+      return node.nodeValue && node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+    },
+  });
+
+  const textNodes: Text[] = [];
+  let cur: Node | null;
+  while ((cur = walker.nextNode())) textNodes.push(cur as Text);
+
+  let firstMark: HTMLElement | null = null;
+
+  for (const node of textNodes) {
+    const original = node.nodeValue || '';
+    const lower = original.toLowerCase().replace(/ё/g, 'е');
+    const ranges: Array<{ start: number; end: number }> = [];
+    for (const w of words) {
+      let from = 0;
+      while (true) {
+        const i = lower.indexOf(w, from);
+        if (i < 0) break;
+        ranges.push({ start: i, end: i + w.length });
+        from = i + w.length;
+      }
+    }
+    if (!ranges.length) continue;
+
+    ranges.sort((a, b) => a.start - b.start);
+    const merged: Array<{ start: number; end: number }> = [ranges[0]];
+    for (let i = 1; i < ranges.length; i++) {
+      const last = merged[merged.length - 1];
+      const r = ranges[i];
+      if (r.start <= last.end) last.end = Math.max(last.end, r.end);
+      else merged.push(r);
+    }
+
+    const frag = document.createDocumentFragment();
+    let cursor = 0;
+    for (const r of merged) {
+      if (r.start > cursor) frag.appendChild(document.createTextNode(original.slice(cursor, r.start)));
+      const mark = document.createElement('mark');
+      mark.className = 'hl-match';
+      mark.textContent = original.slice(r.start, r.end);
+      frag.appendChild(mark);
+      if (!firstMark) firstMark = mark;
+      cursor = r.end;
+    }
+    if (cursor < original.length) frag.appendChild(document.createTextNode(original.slice(cursor)));
+
+    node.parentNode?.replaceChild(frag, node);
+  }
+
+  return firstMark;
 }
 
 // ─── Toast ─────────────────────────────────────────────────────────────────────
