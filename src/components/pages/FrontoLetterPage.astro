@@ -32,11 +32,23 @@ function parseSections(text: string) {
 const fullText = sections.map(s => s.text).join('\n\n---\n\n');
 const cleanText = (s: string) => s.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '');
 
+const cleanedFirst = cleanText(first.text).replace(/\s+/g, ' ').trim();
+
+function makeIncipit(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[,;:.–—\-]+$/, '');
+}
+const incipitForTitle = makeIncipit(cleanedFirst, 55);
+
 const roman = romanize(letterNum);
+const senderShort = isFromFronto ? 'Fronto' : 'Marcus Aurelius';
+const addresseeShort = addressee ? (addressee.includes('Fronto') ? 'Fronto' : 'Marcus Aurelius') : 'Fronto';
 const title = lang === 'ru'
-  ? `Письмо ${roman} — Марк Аврелий и Фронтон`
-  : `Letter ${roman} — Marcus Aurelius and Fronto`;
-const description = `${sender} → ${addressee ?? 'Fronto'}. ${cleanText(first.text).slice(0, 140)}…`;
+  ? `Письмо ${roman}: ${senderShort} → ${addresseeShort}: «${incipitForTitle}…»`
+  : `Letter ${roman}: ${senderShort} to ${addresseeShort}: "${incipitForTitle}…"`;
+const description = `${sender} → ${addressee ?? 'Fronto'}. ${cleanedFirst.slice(0, 140)}${cleanedFirst.length > 140 ? '…' : ''}`;
 
 const url = pageUrl(lang, `/fronto/${letterNum}`);
 const jsonLd = [

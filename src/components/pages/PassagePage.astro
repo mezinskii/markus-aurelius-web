@@ -44,13 +44,33 @@ const restParas = paragraphs.slice(1);
 const cleanText = (s: string) => s.replace(/\{\{fn:\d+\}\}|\[\d+\]/g, '');
 
 const roman = romanize(bookNum);
+const cleanedText = cleanText(passage.text).replace(/\s+/g, ' ').trim();
+
+// Incipit: first ~80 chars, broken at a word boundary, used in H1 + title for uniqueness.
+function makeIncipit(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[,;:.–—\-—–]+$/, '');
+}
+const incipit = makeIncipit(cleanedText, 80);
+const incipitForTitle = makeIncipit(cleanedText, 60);
+
+const translationYear = passage.language === 'en' ? '1862' : '1914';
 const title = lang === 'ru'
-  ? `Размышления ${roman}.${section} — Марк Аврелий`
-  : `Meditations ${roman}.${section} — Marcus Aurelius`;
-const description = cleanText(passage.text).slice(0, 160) + (passage.text.length > 160 ? '…' : '');
+  ? `Размышления ${roman}.${section}: «${incipitForTitle}…» — Марк Аврелий`
+  : `Meditations ${roman}.${section}: "${incipitForTitle}…" — Marcus Aurelius`;
+
+const descriptionBase = cleanedText.length >= 140
+  ? cleanedText.slice(0, 160) + (cleanedText.length > 160 ? '…' : '')
+  : cleanedText;
+const description = cleanedText.length >= 140
+  ? descriptionBase
+  : (lang === 'ru'
+      ? `${descriptionBase} — Марк Аврелий, «Размышления», книга ${roman}, пассаж ${section}. Перевод: ${passage.translator} (${translationYear}).`
+      : `${descriptionBase} — Marcus Aurelius, Meditations, Book ${roman}, passage ${section}. Translation by ${passage.translator} (${translationYear}).`);
 
 const url = pageUrl(lang, `/passage/${bookNum}/${section}`);
-const translationYear = passage.language === 'en' ? '1862' : '1914';
 const jsonLd = [
   passageJsonLd({
     lang, bookNum, romanBook: roman, section,
@@ -94,7 +114,10 @@ const jsonLd = [
         <div class="ref-line">
           <span class="ref-book">{lang === 'ru' ? 'Книга' : 'Book'} {romanize(bookNum)}</span> · {section} · {passage.translator} ({passage.language === 'en' ? '1862' : '1914'})
         </div>
-        <h1 class="passage-section">{section}.</h1>
+        <h1 class="passage-section">
+          <span class="passage-section-num">{section}.</span>
+          <span class="passage-section-incipit">{incipit}…</span>
+        </h1>
 
         <div class="passage-body">
           <p>
@@ -170,3 +193,28 @@ const jsonLd = [
     </div>
   </Shell>
 </Layout>
+
+<style>
+  .passage-main .passage-section {
+    display: block;
+    line-height: 1.15;
+  }
+  .passage-main .passage-section-num {
+    display: inline-block;
+    margin-right: 0.4em;
+  }
+  .passage-main .passage-section-incipit {
+    display: block;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 0.45em;
+    line-height: 1.45;
+    color: var(--text-soft);
+    margin-top: 6px;
+    font-family: var(--serif);
+    max-width: 38rem;
+  }
+  @media (max-width: 700px) {
+    .passage-main .passage-section-incipit { font-size: 16px; }
+  }
+</style>
