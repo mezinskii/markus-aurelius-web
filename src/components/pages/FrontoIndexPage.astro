@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
 import { getFrontoLettersIndex } from '../../lib/sanity';
 import { romanize, letterWord, fragmentWord, UI, type Lang } from '../../lib/ui';
-import { breadcrumbsJsonLd, marcusAureliusPerson, frontoPerson, pageUrl, articleJsonLd } from '../../lib/seo';
+import { breadcrumbsJsonLd, marcusAureliusPerson, frontoPerson, authorPerson, publisherJsonLd, pageUrl, articleJsonLd } from '../../lib/seo';
 
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
@@ -28,6 +28,8 @@ const url = pageUrl(lang, '/fronto');
 const jsonLd = [
   marcusAureliusPerson(),
   frontoPerson(),
+  authorPerson(),
+  publisherJsonLd(),
   articleJsonLd({ url, headline: title, description, lang }),
   breadcrumbsJsonLd([
     { name: lang === 'ru' ? 'Главная' : 'Home', url: pageUrl(lang, '/') },

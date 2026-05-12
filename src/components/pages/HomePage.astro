@@ -5,7 +5,7 @@ import RandomPassage from '../RandomPassage';
 import { getAllMeditationsPassages } from '../../lib/sanity';
 import { BOOK_META, romanize, passageWord, UI, type Lang } from '../../lib/ui';
 import {
-  websiteJsonLd, publisherJsonLd, marcusAureliusPerson, meditationsBookJsonLd,
+  websiteJsonLd, publisherJsonLd, authorPerson, marcusAureliusPerson, meditationsBookJsonLd,
 } from '../../lib/seo';
 
 interface Props { lang: Lang; }
@@ -28,6 +28,7 @@ const description = lang === 'ru'
 const jsonLd = [
   websiteJsonLd(lang),
   publisherJsonLd(),
+  authorPerson(),
   marcusAureliusPerson(),
   meditationsBookJsonLd(lang),
 ];

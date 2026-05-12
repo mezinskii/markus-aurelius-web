@@ -195,8 +195,28 @@ export default function Shell({ route, lang, pathname, children }: Props) {
         <div className="foot-inner">
           <div>{t.footer_copy}</div>
           <div className="spacer" />
-          <div>{t.footer_made}</div>
-          <a href={lang === 'ru' ? '/ru/about' : '/about'} style={{ borderBottom: '1px solid currentColor' }}>{t.footer_feedback}</a>
+          <div>
+            {t.footer_made_pre}
+            <a
+              href={`https://mezinskii.com/${lang}`}
+              rel="author noopener"
+              target="_blank"
+              hrefLang={lang}
+              style={{ borderBottom: '1px solid currentColor' }}
+            >
+              {t.footer_author}
+            </a>
+            .
+          </div>
+          <a
+            href={`https://mezinskii.com/${lang}`}
+            rel="author noopener"
+            target="_blank"
+            hrefLang={lang}
+            style={{ borderBottom: '1px solid currentColor' }}
+          >
+            {t.footer_feedback}
+          </a>
         </div>
       </footer>
 

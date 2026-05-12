@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
 import { getFrontoLetterNumbers } from '../../lib/sanity';
 import { UI, type Lang } from '../../lib/ui';
-import { breadcrumbsJsonLd, articleJsonLd, marcusAureliusPerson, pageUrl } from '../../lib/seo';
+import { breadcrumbsJsonLd, articleJsonLd, marcusAureliusPerson, authorPerson, publisherJsonLd, pageUrl } from '../../lib/seo';
 
 interface Props { lang: Lang; }
 const { lang } = Astro.props;
@@ -23,6 +23,8 @@ const description = lang === 'ru'
 const url = pageUrl(lang, '/about');
 const jsonLd = [
   marcusAureliusPerson(),
+  authorPerson(),
+  publisherJsonLd(),
   articleJsonLd({ url, headline: title, description, lang }),
   breadcrumbsJsonLd([
     { name: lang === 'ru' ? 'Главная' : 'Home', url: pageUrl(lang, '/') },
@@ -91,6 +93,20 @@ const jsonLd = [
         <h2 class="about-bio-block-head">{t.about_book_head}</h2>
         <p>{t.about_book_p1}</p>
         <p>{t.about_book_p2}</p>
+      </section>
+
+      <section class="about-bio-block">
+        <h2 class="about-bio-block-head">{t.about_author_head}</h2>
+        <p>{t.about_author_p1}</p>
+        <p>
+          <a
+            href={`https://mezinskii.com/${lang}`}
+            rel="author noopener"
+            target="_blank"
+            hreflang={lang}
+            style="color:var(--ochre-deep);border-bottom:1px solid currentColor"
+          >{t.about_author_link}</a>
+        </p>
       </section>
 
       <section class="about-translators">

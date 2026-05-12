@@ -30,6 +30,21 @@ export function ogImageForPath(basePath: string, lang: Lang): string {
 }
 
 const MARCUS_ID = abs('/#person-marcus-aurelius');
+const AUTHOR_ID = abs('/#person-ian-mezinskii');
+
+export const AUTHOR_URL = 'https://mezinskii.com';
+
+export function authorPerson() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    '@id': AUTHOR_ID,
+    name: 'Ian Mezinskii',
+    alternateName: ['Ян Мезинский', 'Yan Mezinskii'],
+    url: AUTHOR_URL,
+    sameAs: [AUTHOR_URL],
+  };
+}
 
 export function marcusAureliusPerson() {
   return {
@@ -78,6 +93,8 @@ export function websiteJsonLd(lang: Lang) {
     url: SITE_ORIGIN + '/',
     inLanguage: ['en', 'ru'],
     publisher: { '@id': abs('/#publisher') },
+    author: { '@id': AUTHOR_ID },
+    creator: { '@id': AUTHOR_ID },
   };
 }
 
@@ -92,6 +109,7 @@ export function publisherJsonLd() {
       '@type': 'ImageObject',
       url: abs('/android-chrome-512x512.png'),
     },
+    founder: { '@id': AUTHOR_ID },
   };
 }
 
@@ -260,5 +278,7 @@ export function articleJsonLd(opts: {
     inLanguage: opts.lang === 'ru' ? 'ru' : 'en',
     isPartOf: { '@id': abs('/#website') },
     about: { '@id': MARCUS_ID },
+    author: { '@id': AUTHOR_ID },
+    publisher: { '@id': abs('/#publisher') },
   };
 }
