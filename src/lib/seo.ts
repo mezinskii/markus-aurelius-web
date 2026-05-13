@@ -42,6 +42,7 @@ export function authorPerson() {
     name: 'Ian Mezinskii',
     alternateName: ['Ян Мезинский', 'Yan Mezinskii'],
     url: AUTHOR_URL,
+    email: 'ian@mezinskii.com',
     sameAs: [AUTHOR_URL],
   };
 }
