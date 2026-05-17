@@ -1,6 +1,4 @@
 ---
-import Analytics from "@vercel/analytics/astro";
-
 export interface Props {
   title?: string;
   description?: string;
@@ -114,6 +112,11 @@ const ogImageUrl = ogImage ?? ogForRoute(stripped, lang);
           document.documentElement.setAttribute("data-theme", "dark");
       } catch {}
     </script>
-    <Analytics />
+    <script
+      is:inline
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "fe0f2c8b28af4ff0abb105c85781c63c"}'
+    ></script>
   </body>
 </html>
