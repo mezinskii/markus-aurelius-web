@@ -50,11 +50,13 @@ export async function getMeditationsBook(
   lang: 'en' | 'ru' = 'en',
 ): Promise<MeditationPassage[]> {
   const translator = lang === 'ru' ? 'Роговин' : 'George Long';
-  return client.fetch<MeditationPassage[]>(
+  const rows = await client.fetch<MeditationPassage[]>(
     `*[_type=="passage" && work._ref=="work.meditations" && book==$book && translator==$translator]
-     | order(section asc) {_id, passageId, book, section, text, language, translator, footnotes}`,
+     {_id, passageId, book, section, text, language, translator, footnotes}`,
     { book, translator },
   );
+  // section is stored as a string; sort numerically so "10" follows "9", not "1".
+  return rows.sort((a, b) => parseInt(a.section, 10) - parseInt(b.section, 10));
 }
 
 export async function getAllMeditationsPassages(
