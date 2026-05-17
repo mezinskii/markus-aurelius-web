@@ -1344,4 +1344,145 @@ mark.hl-match {
   .passage-screen { display: block; padding: 0; }
 }
 
+/* ------------------------------------------------------------------
+   SUBSCRIBE FORM
+------------------------------------------------------------------ */
+.subscribe {
+  position: relative;
+  margin: 64px 0 8px;
+  padding: 40px 36px 32px;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  box-shadow:
+    0 1px 0 color-mix(in oklch, var(--paper) 70%, transparent),
+    0 20px 48px -28px color-mix(in oklch, var(--ink) 35%, transparent);
+}
+.subscribe::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: -1px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--ochre) 0%, var(--ochre-deep) 60%, transparent 100%);
+}
+.subscribe-inner {
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+.subscribe-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  color: var(--text);
+  margin: 0 0 10px;
+  text-wrap: pretty;
+}
+.subscribe-desc {
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-soft);
+  margin: 0 0 22px;
+  text-wrap: pretty;
+}
+.subscribe-form {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.subscribe-label {
+  flex: 1;
+  display: block;
+  min-width: 0;
+}
+.subscribe-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.subscribe-input {
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.4;
+  padding: 12px 14px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  outline: none;
+  transition: border-color .18s, box-shadow .18s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.subscribe-input::placeholder {
+  color: var(--text-mute);
+  font-style: italic;
+}
+.subscribe-input:focus {
+  border-color: var(--ochre);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ochre-wash) 70%, transparent);
+}
+.subscribe-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.subscribe-button {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 12px 22px;
+  border: 1px solid var(--ochre-deep);
+  border-radius: 4px;
+  background: var(--ochre-deep);
+  color: var(--paper);
+  cursor: pointer;
+  transition: background .18s, border-color .18s, opacity .18s;
+  white-space: nowrap;
+}
+.subscribe-button:hover:not(:disabled) {
+  background: var(--ochre);
+  border-color: var(--ochre);
+}
+.subscribe-button:focus-visible {
+  outline: 2px solid var(--ochre);
+  outline-offset: 2px;
+}
+.subscribe-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.subscribe-status {
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 12px 0 0;
+  min-height: 1.5em;
+  color: var(--text-soft);
+}
+.subscribe-form[data-state="success"] + .subscribe-status { color: var(--ochre-deep); }
+.subscribe-form[data-state="error"] + .subscribe-status { color: var(--rubric); }
+.subscribe-note {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  margin: 14px 0 0;
+}
+
+@media (max-width: 600px) {
+  .subscribe { padding: 30px 22px 26px; }
+  .subscribe-title { font-size: 22px; }
+  .subscribe-form { flex-direction: column; gap: 10px; }
+  .subscribe-button { padding: 13px 22px; }
+}
+
 

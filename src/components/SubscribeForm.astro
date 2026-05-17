@@ -1,0 +1,186 @@
+---
+export type Locale = "en" | "ru";
+
+export interface Props {
+  locale: Locale;
+}
+
+interface FormCopy {
+  title: string;
+  description: string;
+  placeholder: string;
+  button: string;
+  buttonLoading: string;
+  success: string;
+  errorGeneral: string;
+  errorInvalidEmail: string;
+  note: string;
+}
+
+const COPY: Record<Locale, FormCopy> = {
+  en: {
+    title: "Slow reading of Marcus Aurelius",
+    description:
+      "A weekly letter — one passage with a short commentary. No ads, unsubscribe in one click.",
+    placeholder: "your@email.com",
+    button: "Subscribe",
+    buttonLoading: "Subscribing...",
+    success: "Almost done! Check your email to confirm.",
+    errorGeneral: "Something went wrong. Try again later.",
+    errorInvalidEmail: "Please enter a valid email address.",
+    note: "No spam. Unsubscribe anytime.",
+  },
+  ru: {
+    title: "«Размышления» в письмах",
+    description:
+      "Раз в неделю — пассаж и короткий разбор. Без рекламы, отписаться можно в один клик.",
+    placeholder: "вашa@почта.ru",
+    button: "Подписаться",
+    buttonLoading: "Отправляем...",
+    success: "Почти готово! Проверьте почту и подтвердите подписку.",
+    errorGeneral: "Что-то пошло не так. Попробуйте позже.",
+    errorInvalidEmail: "Пожалуйста, введите корректный email.",
+    note: "Без спама. Отписаться можно в любой момент.",
+  },
+};
+
+const { locale } = Astro.props;
+const t = COPY[locale];
+const inputId = `subscribe-email-${locale}`;
+const statusId = `subscribe-status-${locale}`;
+---
+<section class="subscribe" aria-labelledby={`subscribe-title-${locale}`}>
+  <div class="subscribe-inner">
+    <h2 id={`subscribe-title-${locale}`} class="subscribe-title">{t.title}</h2>
+    <p class="subscribe-desc">{t.description}</p>
+    <form
+      class="subscribe-form"
+      data-subscribe-form
+      data-locale={locale}
+      data-button={t.button}
+      data-button-loading={t.buttonLoading}
+      data-success={t.success}
+      data-error-general={t.errorGeneral}
+      data-error-invalid={t.errorInvalidEmail}
+      novalidate
+    >
+      <label class="subscribe-label" for={inputId}>
+        <span class="subscribe-sr">{t.placeholder}</span>
+        <input
+          id={inputId}
+          class="subscribe-input"
+          name="email"
+          type="email"
+          inputmode="email"
+          autocomplete="email"
+          placeholder={t.placeholder}
+          aria-describedby={statusId}
+          required
+        />
+      </label>
+      <button class="subscribe-button" type="submit">
+        <span data-subscribe-button-label>{t.button}</span>
+      </button>
+    </form>
+    <p
+      id={statusId}
+      class="subscribe-status"
+      data-subscribe-status
+      role="status"
+      aria-live="polite"
+    ></p>
+    <p class="subscribe-note">{t.note}</p>
+  </div>
+</section>
+
+<script>
+  type Locale = "en" | "ru";
+  type StatusKind = "idle" | "loading" | "success" | "error";
+
+  interface SubscribeResponse {
+    success: boolean;
+    message: string;
+  }
+
+  interface FormRefs {
+    form: HTMLFormElement;
+    input: HTMLInputElement;
+    button: HTMLButtonElement;
+    buttonLabel: HTMLElement;
+    status: HTMLElement;
+  }
+
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function getRefs(form: HTMLFormElement): FormRefs | null {
+    const input = form.querySelector<HTMLInputElement>('input[name="email"]');
+    const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const buttonLabel = form.querySelector<HTMLElement>(
+      "[data-subscribe-button-label]",
+    );
+    const statusId = input?.getAttribute("aria-describedby") ?? "";
+    const status = statusId ? document.getElementById(statusId) : null;
+    if (!input || !button || !buttonLabel || !status) return null;
+    return { form, input, button, buttonLabel, status };
+  }
+
+  function setStatus(refs: FormRefs, kind: StatusKind, message: string): void {
+    const { form, input, button, buttonLabel, status } = refs;
+    form.dataset.state = kind;
+    status.textContent = message;
+    const idleLabel = form.dataset.button ?? "";
+    const loadingLabel = form.dataset.buttonLoading ?? idleLabel;
+    const isLoading = kind === "loading";
+    buttonLabel.textContent = isLoading ? loadingLabel : idleLabel;
+    button.disabled = isLoading;
+    input.disabled = isLoading;
+  }
+
+  function readLocale(form: HTMLFormElement): Locale {
+    return form.dataset.locale === "ru" ? "ru" : "en";
+  }
+
+  async function submitForm(refs: FormRefs): Promise<void> {
+    const { form, input } = refs;
+    const email = input.value.trim();
+
+    if (!EMAIL_RE.test(email)) {
+      setStatus(refs, "error", form.dataset.errorInvalid ?? "");
+      return;
+    }
+
+    setStatus(refs, "loading", "");
+
+    try {
+      const response = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, locale: readLocale(form) }),
+      });
+      const data = (await response.json()) as SubscribeResponse;
+      if (data.success) {
+        setStatus(refs, "success", data.message);
+        input.value = "";
+      } else {
+        setStatus(refs, "error", data.message || (form.dataset.errorGeneral ?? ""));
+      }
+    } catch {
+      setStatus(refs, "error", form.dataset.errorGeneral ?? "");
+    }
+  }
+
+  const forms = Array.from(
+    document.querySelectorAll<HTMLFormElement>("[data-subscribe-form]"),
+  );
+
+  forms
+    .map(getRefs)
+    .filter((refs): refs is FormRefs => refs !== null)
+    .map((refs) => {
+      refs.form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        void submitForm(refs);
+      });
+      return refs;
+    });
+</script>

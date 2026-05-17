@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
+import SubscribeForm from '../SubscribeForm.astro';
 import { getFrontoLetterNumbers } from '../../lib/sanity';
 import { UI, type Lang } from '../../lib/ui';
 import { breadcrumbsJsonLd, articleJsonLd, marcusAureliusPerson, authorPerson, publisherJsonLd, pageUrl } from '../../lib/seo';
@@ -136,6 +137,8 @@ const jsonLd = [
           </div>
         </div>
       </section>
+
+      <SubscribeForm locale={lang} />
     </main>
   </Shell>
 </Layout>

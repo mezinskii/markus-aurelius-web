@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
 import RandomPassage from '../RandomPassage';
+import SubscribeForm from '../SubscribeForm.astro';
 import { getAllMeditationsPassages } from '../../lib/sanity';
 import { BOOK_META, romanize, passageWord, UI, type Lang } from '../../lib/ui';
 import {
@@ -72,6 +73,8 @@ const jsonLd = [
           ))}
         </div>
       </section>
+
+      <SubscribeForm locale={lang} />
     </main>
   </Shell>
 </Layout>
