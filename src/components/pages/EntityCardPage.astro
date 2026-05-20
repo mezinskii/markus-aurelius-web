@@ -1,0 +1,590 @@
+---
+/**
+ * EntityCardPage — single flexible template for all six entity types
+ * (term, dogma, exercise, motif, person, place).
+ *
+ * The head shape branches by type:
+ *   - term                 — Greek headword + transliteration + bilingual gloss
+ *                            (translation.ru / translation.en side-by-side)
+ *   - dogma/motif/exercise — Localised title as headword. No separate gloss row:
+ *                            in our schema the title field already combines a
+ *                            label and a one-line summary with an em-dash, so
+ *                            duplicating it as gloss would look strange.
+ *   - person/place         — Display name + Greek/Latin alt forms + dates/period
+ *                            + a single-language gloss from role/location.
+ *
+ * Body sections come from the entity card's `sections` array in canonical order;
+ * their localised titles come from ENTITY_SECTION_TITLE.
+ */
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../Shell';
+import type { Lang } from '../../lib/ui';
+import type { EntityCardData } from '../../lib/sanity';
+import {
+  renderPortableText,
+  type FootnoteEntry,
+} from '../../lib/academic/render';
+import {
+  ACAD_UI,
+  ENTITY_SECTION_TITLE,
+  ENTITY_TYPE_LABEL,
+  ENTITY_TYPE_PATH,
+  DISCIPLINE_LABEL,
+} from '../../lib/academic/ui';
+import { pageUrl, breadcrumbsJsonLd } from '../../lib/seo';
+
+interface Props {
+  lang: Lang;
+  entity: EntityCardData;
+}
+const { lang, entity } = Astro.props;
+const t = ACAD_UI[lang];
+const langPrefix = lang === 'ru' ? '/ru' : '';
+const typeLabel = ENTITY_TYPE_LABEL[entity._type][lang];
+
+// Entity pages render PT without a footnote registry (no inline footnotes here)
+// and with the related-concepts list pre-built as the xref index — so inline
+// xrefs in section bodies resolve to clickable links.
+const emptyFnReg = new Map<string, FootnoteEntry>();
+const entityIndex = new Map(entity.related.map(r => [r._id, r]));
+
+const baseCtx = {
+  lang,
+  entityIndex,
+  footnoteRegistry: emptyFnReg,
+} as const;
+
+const sectionsHtml = entity.sections.map((s, i) => ({
+  id: s.id,
+  num: roman(i + 1),
+  title: ENTITY_SECTION_TITLE[entity._type]?.[s.id]?.[lang] ?? s.id,
+  html: renderPortableText(s.body, { ...baseCtx, textContext: 'commentary' }),
+}));
+
+function roman(n: number): string {
+  const map: [string, number][] = [['X',10],['IX',9],['V',5],['IV',4],['I',1]];
+  let s = ''; let r = n;
+  for (const [v, k] of map) { while (r >= k) { s += v; r -= k; } }
+  return s;
+}
+
+// Display picks per type
+const displayHeadword =
+  entity._type === 'term'  ? entity.display.headword :
+  (entity._type === 'person' || entity._type === 'place') ? entity.display.name :
+  entity.display.title;
+
+const glossText = lang === 'en'
+  ? (entity.display.translationEn ?? entity.display.title ?? '')
+  : (entity.display.translationRu ?? entity.display.title ?? '');
+
+const title = `${displayHeadword ?? entity.slug} — ${typeLabel}`;
+const description = glossText || (lang === 'ru' ? 'Карточка из академического корпуса.' : 'A card from the academic corpus.');
+
+const pathname = `${langPrefix}/${ENTITY_TYPE_PATH[entity._type]}/${entity.slug}`;
+const canonicalUrl = `https://readaurelius.org${pathname}`;
+
+// JSON-LD structured data — schema type depends on entity kind. People and
+// places are first-class schema.org things; the abstract concepts (term,
+// dogma, exercise, motif) map most naturally to DefinedTerm under a single
+// DefinedTermSet for the academic corpus. Always pair with a BreadcrumbList
+// so the page matches the SEO shape of the rest of the site (legacy passages
+// and entity sayings also emit breadcrumbs).
+function buildPrimaryJsonLd(): Record<string, unknown> | null {
+  const baseSet = {
+    '@type': 'DefinedTermSet',
+    'name': lang === 'ru'
+      ? 'Концептуальный аппарат «Размышлений» Марка Аврелия'
+      : "Conceptual apparatus of Marcus Aurelius's Meditations",
+  };
+  switch (entity._type) {
+    case 'person':
+      return {
+        '@context': 'https://schema.org',
+        '@type': 'Person',
+        'name': entity.display.name ?? entity.slug,
+        'alternateName': [entity.display.greekForm, entity.display.latinForm].filter(Boolean),
+        'description': entity.display.dates
+          ? `${entity.display.role ?? ''} (${entity.display.dates})`.trim()
+          : (entity.display.role ?? description),
+        'birthPlace': entity.display.birthplace ?? undefined,
+        'inLanguage': lang === 'ru' ? 'ru' : 'en',
+        'url': canonicalUrl,
+      };
+    case 'place':
+      return {
+        '@context': 'https://schema.org',
+        '@type': 'Place',
+        'name': entity.display.name ?? entity.slug,
+        'alternateName': [entity.display.greekForm, entity.display.latinForm].filter(Boolean),
+        'description': [entity.display.location, entity.display.period].filter(Boolean).join(' · ') || description,
+        'inLanguage': lang === 'ru' ? 'ru' : 'en',
+        'url': canonicalUrl,
+      };
+    case 'term':
+      return {
+        '@context': 'https://schema.org',
+        '@type': 'DefinedTerm',
+        'name': entity.display.headword ?? entity.slug,
+        'alternateName': entity.display.translit ?? undefined,
+        'description': glossText || description,
+        'termCode': entity.slug,
+        'inLanguage': lang === 'ru' ? 'ru' : 'en',
+        'inDefinedTermSet': baseSet,
+        'url': canonicalUrl,
+      };
+    case 'dogma':
+    case 'exercise':
+    case 'motif':
+      return {
+        '@context': 'https://schema.org',
+        '@type': 'DefinedTerm',
+        'name': entity.display.title ?? entity.slug,
+        'description': description,
+        'termCode': entity.slug,
+        'inLanguage': lang === 'ru' ? 'ru' : 'en',
+        'inDefinedTermSet': baseSet,
+        'url': canonicalUrl,
+      };
+    default:
+      return null;
+  }
+}
+
+const primaryJsonLd = buildPrimaryJsonLd();
+const entityName = entity.display.title ?? entity.display.name ?? entity.display.headword ?? entity.slug;
+// 2-level breadcrumb: Home > Entity. No per-type index page exists yet, so we
+// don't synthesise a phantom intermediate crumb that would link back to the
+// same URL.
+const jsonLd: Record<string, unknown>[] = [
+  ...(primaryJsonLd ? [primaryJsonLd] : []),
+  breadcrumbsJsonLd([
+    { name: lang === 'ru' ? 'Главная' : 'Home', url: pageUrl(lang, '/') },
+    {
+      name: `${entityName} · ${typeLabel}`,
+      url: pageUrl(lang, `/${ENTITY_TYPE_PATH[entity._type]}/${entity.slug}`),
+    },
+  ]),
+];
+
+// Person/place — what to show as the "in brief" gloss line.
+const personPlaceGloss = entity._type === 'person'
+  ? entity.display.role
+  : entity._type === 'place'
+    ? (entity.display.location ?? entity.display.period)
+    : null;
+
+const showDisciplineChip = entity._type === 'exercise' && entity.display.discipline;
+---
+<Layout
+  title={title}
+  description={description}
+  lang={lang}
+  basePath={`/${ENTITY_TYPE_PATH[entity._type]}/${entity.slug}`}
+  extraStylesheets={['/academic.css']}
+  jsonLd={jsonLd}
+>
+  <Shell route="passage" lang={lang} pathname={pathname} client:load>
+    <div data-acad-entity data-entity-type={entity._type} data-entity-slug={entity.slug}>
+    <div class="ent-shell">
+      {/* ─── HEAD ─── */}
+      <header class="ent-head">
+        <div></div>{/* left rail spacer */}
+        <div>
+          <div class="ent-head-type">
+            {typeLabel}
+            {showDisciplineChip && (
+              <span class={`acad-chip acad-chip-discipline ${entity.display.discipline}`} style="margin-left:12px">
+                <span class="acad-chip-dot"></span>
+                {DISCIPLINE_LABEL[entity.display.discipline as 'assent' | 'desire' | 'action'][lang]}
+              </span>
+            )}
+          </div>
+
+          {entity._type === 'term' && (
+            <>
+              <h1 class="ent-headword">{entity.display.headword}</h1>
+              {entity.display.translit && (
+                <div class="ent-translit">{entity.display.translit}</div>
+              )}
+              {(entity.display.translationRu || entity.display.translationEn) && (
+                <div class="ent-gloss">
+                  <div class="ent-gloss-col">
+                    <div class="lbl">RU</div>
+                    <p>{entity.display.translationRu ?? '—'}</p>
+                  </div>
+                  <div class="ent-gloss-col">
+                    <div class="lbl">EN</div>
+                    <p>{entity.display.translationEn ?? '—'}</p>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {(entity._type === 'dogma' || entity._type === 'motif' || entity._type === 'exercise') && (
+            <h1 class="ent-headword no-greek">{entity.display.title}</h1>
+          )}
+
+          {(entity._type === 'person' || entity._type === 'place') && (
+            <>
+              <h1 class="ent-headword person">{entity.display.name}</h1>
+              {(entity.display.greekForm || entity.display.latinForm || entity.display.dates) && (
+                <div class="ent-name-alt">
+                  {entity.display.greekForm && <span>{entity.display.greekForm}</span>}
+                  {entity.display.latinForm && (
+                    <span class={entity.display.greekForm ? 'latin' : ''}>{entity.display.latinForm}</span>
+                  )}
+                  {entity.display.dates && <span class="dates">{entity.display.dates}</span>}
+                </div>
+              )}
+              {personPlaceGloss && (
+                <div class="ent-gloss solo">
+                  <div class="ent-gloss-col">
+                    <div class="lbl">{t.inBrief}</div>
+                    <p>{personPlaceGloss}</p>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </header>
+
+      {/* ─── LEFT RAIL — related concepts ─── */}
+      <aside class="acad-related">
+        {entity.related.length > 0 && (
+          <div class="acad-related-group">
+            <div class="acad-related-label">{t.related}</div>
+            <div class="acad-related-list">
+              {entity.related.map(it => (
+                <a class="acad-rel" href={`${langPrefix}/${ENTITY_TYPE_PATH[it._type]}/${it.slug}`}>
+                  <span class="acad-rel-headword">
+                    {it.headword}
+                    {it.gloss && <em>· {it.gloss}</em>}
+                  </span>
+                  <span class="acad-rel-type">{ENTITY_TYPE_LABEL[it._type][lang]}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </aside>
+
+      {/* ─── CENTER — body sections ─── */}
+      <article class="ent-body">
+        {sectionsHtml.map(s => (
+          <section id={`s-${s.id}`}>
+            <h3><span class="num">§ {s.num}</span>{s.title}</h3>
+            <div set:html={s.html} />
+          </section>
+        ))}
+      </article>
+
+      {/* ─── RIGHT RAIL — appears-in passage list ─── */}
+      <aside class="acad-margin">
+        {entity.appearsIn.length > 0 && (
+          <div class="acad-margin-section">
+            <div class="acad-margin-label">
+              {t.appearsIn} · {entity.appearsIn.length}
+            </div>
+            <div class="ent-passage-list">
+              {entity.appearsIn.map(p => (
+                <a
+                  class="ent-passage-row"
+                  href={`${langPrefix}/passage/${p.book}/${p.chapter}`}
+                >
+                  <span class="ref">{p.book}.{p.chapter}</span>
+                  <p class="preview">{p.preview.slice(0, 160)}{p.preview.length > 160 ? '…' : ''}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </aside>
+    </div>{/* end .ent-shell — desktop */}
+
+    {/* ─── MOBILE LAYOUT ─── (hidden at ≥900px via CSS). Same data; phone-
+         shaped reading: hero by type · gloss block · 3-fact strip ·
+         sticky § chip nav · body · related scroller · appears-in list. */}
+    <div class="ent-m-shell">
+      {/* Hero — branches by entity type */}
+      <div class="ent-m-hero">
+        <div class="ent-m-type">
+          <span class="dash"></span>
+          {typeLabel}
+          {showDisciplineChip && (
+            <span class={`acad-chip acad-chip-discipline ${entity.display.discipline}`} style="margin-left:10px">
+              <span class="acad-chip-dot"></span>
+              {DISCIPLINE_LABEL[entity.display.discipline as 'assent' | 'desire' | 'action'][lang]}
+            </span>
+          )}
+        </div>
+
+        {entity._type === 'term' && (
+          <>
+            <h1 class="ent-m-hw gk">{entity.display.headword}</h1>
+            {entity.display.translit && <div class="ent-m-tr">{entity.display.translit}</div>}
+          </>
+        )}
+
+        {(entity._type === 'dogma' || entity._type === 'motif' || entity._type === 'exercise') && (
+          <h1 class="ent-m-hw lat">{entity.display.title}</h1>
+        )}
+
+        {(entity._type === 'person' || entity._type === 'place') && (
+          <>
+            <h1 class="ent-m-hw name">{entity.display.name}</h1>
+            {(entity.display.greekForm || entity.display.latinForm) && (
+              <div class="ent-m-namealt">
+                {entity.display.latinForm && <span>{entity.display.latinForm}</span>}
+                {entity.display.greekForm && <span class="gk">{entity.display.greekForm}</span>}
+              </div>
+            )}
+            {entity.display.dates && <div class="ent-m-dates">{entity.display.dates}</div>}
+          </>
+        )}
+      </div>
+
+      {/* Gloss — bilingual side-by-side for term, single for others */}
+      {entity._type === 'term' && (entity.display.translationRu || entity.display.translationEn) && (
+        <div class="ent-m-gloss">
+          <div class="ent-m-gloss-col">
+            <span class="lbl">RU</span>
+            <p>{entity.display.translationRu ?? '—'}</p>
+          </div>
+          <div class="ent-m-gloss-col">
+            <span class="lbl">EN</span>
+            <p>{entity.display.translationEn ?? '—'}</p>
+          </div>
+        </div>
+      )}
+      {personPlaceGloss && (
+        <div class="ent-m-gloss">
+          <div class="ent-m-gloss-col one">
+            <span class="lbl">{t.inBrief}</span>
+            <p>{personPlaceGloss}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Quick facts strip */}
+      <div class="ent-m-facts">
+        <div class="f">
+          <span>{t.appearsIn}</span>
+          <strong>{entity.appearsIn.length}</strong>
+        </div>
+        <div class="f">
+          <span>{t.related}</span>
+          <strong>{entity.related.length}</strong>
+        </div>
+        <div class="f">
+          <span>{lang === 'ru' ? 'Разделов' : 'Sections'}</span>
+          <strong>{sectionsHtml.length}</strong>
+        </div>
+      </div>
+
+      {/* Sticky section chip nav */}
+      {sectionsHtml.length > 0 && (
+        <div class="ent-m-secnav">
+          <div class="ent-m-secnav-inner">
+            {sectionsHtml.map((s, i) => (
+              <a
+                class={`ent-m-secchip${i === 0 ? ' on' : ''}`}
+                href={`#m-s-${s.id}`}
+                data-ent-m-chip={s.id}
+              >
+                <span class="n">§ {s.num}</span>
+                {s.title}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Body sections */}
+      <article class="ent-m-body">
+        {sectionsHtml.map(s => (
+          <section id={`m-s-${s.id}`} data-ent-m-section={s.id}>
+            <h3>
+              <span class="num">§ {s.num}</span>
+              {s.title}
+            </h3>
+            <div set:html={s.html} />
+          </section>
+        ))}
+      </article>
+
+      {/* Related — horizontal scroller of mini-cards */}
+      {entity.related.length > 0 && (
+        <section class="acad-m-section">
+          <div class="acad-m-section-head">
+            <span class="lbl">{t.related}</span>
+            <span class="ct">{entity.related.length}</span>
+          </div>
+          <div class="acad-m-relrow">
+            <div class="acad-m-relrow-inner">
+              {entity.related.map(it => (
+                <a
+                  class={`acad-m-relcard acad-m-relcard-${it._type}`}
+                  href={`${langPrefix}/${ENTITY_TYPE_PATH[it._type]}/${it.slug}`}
+                >
+                  <span class="type">{ENTITY_TYPE_LABEL[it._type][lang]}</span>
+                  <span class="hw">{it.headword}</span>
+                  {it.gloss && <span class="gl">{it.gloss}</span>}
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Appears in — first 3 then "show more" expander */}
+      {entity.appearsIn.length > 0 && (
+        <section class="acad-m-section" data-ent-m-appears>
+          <div class="acad-m-section-head">
+            <span class="lbl">{t.appearsIn}</span>
+            <span class="ct">{entity.appearsIn.length}</span>
+          </div>
+          {entity.appearsIn.map((p, i) => (
+            <a
+              class="ent-m-passage"
+              href={`${langPrefix}/passage/${p.book}/${p.chapter}`}
+              data-ent-m-passage-row={i}
+              data-collapsed={i >= 3 ? '' : null}
+            >
+              <span class="ref">{p.book}.{p.chapter}</span>
+              <span class="pr">{p.preview.slice(0, 160)}{p.preview.length > 160 ? '…' : ''}</span>
+            </a>
+          ))}
+          {entity.appearsIn.length > 3 && (
+            <button class="ent-m-passage-more" data-ent-m-appears-more>
+              {lang === 'ru'
+                ? `Показать ещё ${entity.appearsIn.length - 3}`
+                : `Show ${entity.appearsIn.length - 3} more`} →
+            </button>
+          )}
+        </section>
+      )}
+
+      <div class="acad-m-bottombar-spacer"></div>
+
+      {/* Sticky bottom action bar */}
+      <div class="acad-m-bottombar">
+        <a class="acad-m-bbtn" href={`${langPrefix}/${ENTITY_TYPE_PATH[entity._type]}/${entity.slug}`}>
+          <span class="ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+          </span>
+          <span class="lb">{t.copy}</span>
+        </a>
+        {sectionsHtml.length > 1 && (
+          <button class="acad-m-bbtn" data-acad-m-toc-toggle aria-label={lang === 'ru' ? 'Разделы' : 'Sections'}>
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+            </span>
+            <span class="lb">{lang === 'ru' ? 'Разделы' : 'Sections'}</span>
+            <span class="ct">{sectionsHtml.length}</span>
+          </button>
+        )}
+        {entity.appearsIn.length > 0 && (
+          <a class="acad-m-bbtn" href={`${langPrefix}/passage/${entity.appearsIn[0].book}/${entity.appearsIn[0].chapter}`}>
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 5h14v14H3zM7 5v14M17 8h4v11H7"/></svg>
+            </span>
+            <span class="lb">{t.passage}</span>
+          </a>
+        )}
+      </div>
+
+      {/* Sections bottom sheet */}
+      {sectionsHtml.length > 1 && (
+        <>
+          <div class="acad-m-sheet-scrim" data-acad-m-sheet-scrim hidden></div>
+          <div class="acad-m-sheet" data-acad-m-sheet="toc" hidden>
+            <div class="acad-m-sheet-handle"></div>
+            <div class="acad-m-sheet-head">
+              <span class="lbl">{lang === 'ru' ? 'Разделы' : 'Sections'}</span>
+              <button data-acad-m-sheet-close aria-label="Close">×</button>
+            </div>
+            {sectionsHtml.map((s, i) => (
+              <a
+                class={`acad-m-sheet-item${i === 0 ? ' on' : ''}`}
+                href={`#m-s-${s.id}`}
+                data-acad-m-sheet-jump
+              >
+                <span class="num">§ {s.num}</span>
+                <span class="ttl">{s.title}</span>
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+    </div>{/* end .ent-m-shell */}
+
+    </div>{/* end data-acad-entity common parent */}
+  </Shell>
+</Layout>
+
+<script is:inline>
+  /* Mobile entity: sticky chip nav scroll-spy + "show more" passages
+     + sections bottom sheet. Shares the .acad-m-bottombar / .acad-m-sheet
+     classes with the passage layout so the desktop fall-through is the
+     same — no separate handler needed for the sheet open/close. */
+  (function () {
+    const root = document.querySelector('[data-acad-entity]');
+    if (!root) return;
+
+    // ── Scroll-spy for the chip nav ──
+    const chips = Array.from(root.querySelectorAll('[data-ent-m-chip]'));
+    const sections = Array.from(root.querySelectorAll('[data-ent-m-section]'));
+    if (chips.length && sections.length) {
+      const byId = new Map(chips.map(c => [c.getAttribute('data-ent-m-chip'), c]));
+      let active = sections[0].getAttribute('data-ent-m-section');
+      const setActive = (id) => {
+        if (id === active) return;
+        active = id;
+        for (const c of chips) c.classList.toggle('on', c.getAttribute('data-ent-m-chip') === id);
+      };
+      const io = new IntersectionObserver(
+        (entries) => {
+          const visible = entries.filter(e => e.isIntersecting).map(e => e.target);
+          if (visible.length > 0) {
+            let pick = visible[0];
+            for (const s of visible) {
+              if (s.getBoundingClientRect().top > pick.getBoundingClientRect().top) pick = s;
+            }
+            setActive(pick.getAttribute('data-ent-m-section'));
+          }
+        },
+        { rootMargin: '0px 0px -70% 0px', threshold: 0 },
+      );
+      for (const s of sections) io.observe(s);
+      void byId;
+    }
+
+    // ── Appears-in "show more" expander ──
+    const moreBtn = root.querySelector('[data-ent-m-appears-more]');
+    if (moreBtn) {
+      moreBtn.addEventListener('click', () => {
+        for (const row of root.querySelectorAll('[data-ent-m-passage-row][data-collapsed]')) {
+          row.removeAttribute('data-collapsed');
+        }
+        moreBtn.setAttribute('hidden', '');
+      });
+    }
+
+    // ── Sections sheet (reuses .acad-m-sheet classes) ──
+    const sheet  = root.querySelector('[data-acad-m-sheet="toc"]');
+    const scrim  = root.querySelector('[data-acad-m-sheet-scrim]');
+    const tocBtn = root.querySelector('[data-acad-m-toc-toggle]');
+    const closeBtn = root.querySelector('[data-acad-m-sheet-close]');
+    const openSheet  = () => { sheet?.removeAttribute('hidden'); scrim?.removeAttribute('hidden'); };
+    const closeSheet = () => { sheet?.setAttribute('hidden', ''); scrim?.setAttribute('hidden', ''); };
+    tocBtn?.addEventListener('click', openSheet);
+    closeBtn?.addEventListener('click', closeSheet);
+    scrim?.addEventListener('click', closeSheet);
+    for (const item of root.querySelectorAll('[data-acad-m-sheet-jump]')) {
+      item.addEventListener('click', () => setTimeout(closeSheet, 50));
+    }
+  })();
+</script>

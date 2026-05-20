@@ -1,17 +1,51 @@
 ---
+/** RU mirror of /passage/[book]/[section] — same branching logic. */
 import PassagePage from '../../../../components/pages/PassagePage.astro';
-import { getAllMeditationsPassages, type MeditationPassage } from '../../../../lib/sanity';
+import PassageCardPage from '../../../../components/pages/PassageCardPage.astro';
+import {
+  getAllMeditationsPassages,
+  getAllPassageCards,
+  type MeditationPassage,
+  type PassageCard,
+} from '../../../../lib/sanity';
 
 export async function getStaticPaths() {
-  const all = await getAllMeditationsPassages('ru');
-  return all.map(p => ({
+  const [legacy, cards] = await Promise.all([
+    getAllMeditationsPassages('ru'),
+    getAllPassageCards('ru'),
+  ]);
+  const cardMap = new Map<string, PassageCard>();
+  for (const c of cards) cardMap.set(`${c.book}.${c.chapter}`, c);
+
+  const paths = legacy.map(p => ({
     params: { book: String(p.book), section: p.section },
-    props: { passage: p },
+    props: {
+      passage: p as MeditationPassage | null,
+      card: cardMap.get(`${p.book}.${p.section}`) ?? null,
+    },
   }));
+
+  const legacyKeys = new Set(legacy.map(p => `${p.book}.${p.section}`));
+  for (const c of cards) {
+    const key = `${c.book}.${c.chapter}`;
+    if (legacyKeys.has(key)) continue;
+    paths.push({
+      params: { book: String(c.book), section: String(c.chapter) },
+      props: { passage: null, card: c },
+    });
+  }
+  return paths;
 }
 
-const { passage } = Astro.props as { passage: MeditationPassage };
+const { passage, card } = Astro.props as {
+  passage: MeditationPassage | null;
+  card: PassageCard | null;
+};
 const bookNum = parseInt(Astro.params.book as string, 10);
 const section = Astro.params.section as string;
 ---
-<PassagePage lang="ru" bookNum={bookNum} section={section} passage={passage} />
+{
+  card
+    ? <PassageCardPage lang="ru" card={card} />
+    : <PassagePage lang="ru" bookNum={bookNum} section={section} passage={passage!} />
+}

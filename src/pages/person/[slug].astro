@@ -1,0 +1,18 @@
+﻿---
+import EntityCardPage from '../../components/pages/EntityCardPage.astro';
+import { getAllEntitySlugs, getEntity, type EntityCardData } from '../../lib/sanity';
+
+export async function getStaticPaths() {
+  const slugs: string[] = await getAllEntitySlugs('person');
+  const entities = await Promise.all(slugs.map((s: string) => getEntity('person', s, 'en')));
+  return entities
+    .filter((e: EntityCardData | null): e is EntityCardData => e !== null)
+    .map((e: EntityCardData) => ({
+      params: { slug: e.slug },
+      props: { entity: e },
+    }));
+}
+
+const { entity } = Astro.props as { entity: EntityCardData };
+---
+<EntityCardPage lang="en" entity={entity} />

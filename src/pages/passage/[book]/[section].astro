@@ -1,17 +1,62 @@
 ---
+/**
+ * Dynamic passage route. Branches at render time:
+ *   - If a `passageCard` exists for this (book, section) → render the new
+ *     academic layout (PassageCardPage). This is the case for Book II.
+ *   - Otherwise → render the legacy PassagePage (single translation + footnotes).
+ *
+ * `getStaticPaths` enumerates every legacy passage AND every passageCard, then
+ * attaches a card prop to those that have one. Old books keep working; new
+ * books light up incrementally as their passageCards land.
+ */
 import PassagePage from '../../../components/pages/PassagePage.astro';
-import { getAllMeditationsPassages, type MeditationPassage } from '../../../lib/sanity';
+import PassageCardPage from '../../../components/pages/PassageCardPage.astro';
+import {
+  getAllMeditationsPassages,
+  getAllPassageCards,
+  type MeditationPassage,
+  type PassageCard,
+} from '../../../lib/sanity';
 
 export async function getStaticPaths() {
-  const all = await getAllMeditationsPassages('en');
-  return all.map(p => ({
+  const [legacy, cards] = await Promise.all([
+    getAllMeditationsPassages('en'),
+    getAllPassageCards('en'),
+  ]);
+  const cardMap = new Map<string, PassageCard>();
+  for (const c of cards) cardMap.set(`${c.book}.${c.chapter}`, c);
+
+  // Start from the legacy set so paths/SEO/old translations stay stable.
+  const paths = legacy.map(p => ({
     params: { book: String(p.book), section: p.section },
-    props: { passage: p },
+    props: {
+      passage: p as MeditationPassage | null,
+      card: cardMap.get(`${p.book}.${p.section}`) ?? null,
+    },
   }));
+
+  // Cover any passageCards that have no matching legacy passage (future books).
+  const legacyKeys = new Set(legacy.map(p => `${p.book}.${p.section}`));
+  for (const c of cards) {
+    const key = `${c.book}.${c.chapter}`;
+    if (legacyKeys.has(key)) continue;
+    paths.push({
+      params: { book: String(c.book), section: String(c.chapter) },
+      props: { passage: null, card: c },
+    });
+  }
+  return paths;
 }
 
-const { passage } = Astro.props as { passage: MeditationPassage };
+const { passage, card } = Astro.props as {
+  passage: MeditationPassage | null;
+  card: PassageCard | null;
+};
 const bookNum = parseInt(Astro.params.book as string, 10);
 const section = Astro.params.section as string;
 ---
-<PassagePage lang="en" bookNum={bookNum} section={section} passage={passage} />
+{
+  card
+    ? <PassageCardPage lang="en" card={card} />
+    : <PassagePage lang="en" bookNum={bookNum} section={section} passage={passage!} />
+}

@@ -1,0 +1,1243 @@
+---
+/**
+ * PassageCardPage — the Book II academic layout.
+ *
+ * Hard locale rule (per design spec):
+ *   - RU shows ONLY Rogovin's translation + the Greek block. No English at all.
+ *   - EN shows the Long translation by default, with a translator-pill toggle to
+ *     the Modern English rewrite. The user's choice is remembered in localStorage
+ *     (a tiny inline script reads it on load).
+ *
+ * Interactive behaviour (xref popovers, compare mode, scroll-spy TOC,
+ * footnote-↔-margin highlighting) is delegated to React islands attached in
+ * Phase 5 — this template emits the right DOM + data attributes for them.
+ */
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../Shell';
+import type { Lang } from '../../lib/ui';
+import { romanize } from '../../lib/ui';
+import type { PassageCard, PTBlock, RefSummary, EntityType } from '../../lib/sanity';
+import {
+  renderPortableText,
+  buildEntityIndex,
+  buildFootnoteRegistry,
+  type FootnoteEntry,
+} from '../../lib/academic/render';
+import {
+  ACAD_UI,
+  DISCIPLINE_LABEL,
+  ENTITY_TYPE_LABEL,
+  ENTITY_TYPE_PATH,
+} from '../../lib/academic/ui';
+import {
+  pageUrl,
+  passageJsonLd,
+  breadcrumbsJsonLd,
+} from '../../lib/seo';
+
+interface Props {
+  lang: Lang;
+  card: PassageCard;
+}
+const { lang, card } = Astro.props;
+const t = ACAD_UI[lang];
+const langPrefix = lang === 'ru' ? '/ru' : '';
+const pathname = `${langPrefix}/passage/${card.book}/${card.chapter}`;
+
+// Pre-build the indices used by every PT renderer invocation on this page.
+const entityIndex = buildEntityIndex(card);
+const footnoteRegistry = buildFootnoteRegistry(card);
+
+// Render each PT field once into HTML.
+const baseCtx = { lang, entityIndex, footnoteRegistry };
+const greekHtml      = renderPortableText(card.greekText,         { ...baseCtx, textContext: 'greek' });
+const russianHtml    = stripTranslatorCredit(renderPortableText(card.russianText,       { ...baseCtx, textContext: 'translation' }));
+const longHtml       = stripTranslatorCredit(renderPortableText(card.englishText,       { ...baseCtx, textContext: 'translation' }));
+const modernHtml     = stripTranslatorCredit(renderPortableText(card.modernizationText, { ...baseCtx, textContext: 'translation' }));
+const commentaryHtml = renderPortableText(card.commentary,        { ...baseCtx, textContext: 'commentary' });
+
+/** Source markdown carries a trailing translator credit baked into the body —
+ *  e.g. `*(пер. Роговин)*`, `*(Long)*`, `*(модернизация перевода Long, 1862)*`.
+ *  These render as `<p><em>(…)</em></p>` and clash with the locale (the
+ *  modernization credit is in Russian even on the EN page) and duplicate
+ *  the translator name we already show in the section label. Strip the trailing
+ *  italic-only parenthetical paragraph.
+ *
+ *  TODO(data): fix the Obsidian source so each `*(…)*` is in the right language
+ *  per translation field; once that lands this stripper becomes dead code. */
+function stripTranslatorCredit(html: string): string {
+  return html.replace(/\s*<p>\s*<em>\s*\([^()<>]*\)\s*<\/em>\s*<\/p>\s*$/i, '').trim();
+}
+
+// Footnotes list — sorted by their assigned number (the registry handed them
+// numbers in textual reading order).
+const footnoteList = card.footnotes
+  .map(fn => ({ fn, entry: footnoteRegistry.get(fn.key) as FootnoteEntry | undefined }))
+  .filter(x => x.entry)
+  .sort((a, b) => a.entry!.num - b.entry!.num)
+  .map(x => ({
+    key: x.fn.key,
+    num: x.entry!.num,
+    kind: x.entry!.kind,
+    bodyHtml: renderPortableText(x.fn.body, { ...baseCtx, textContext: 'footnote' }),
+  }));
+
+// Commentary TOC — top-level h2/h3 headings in the rendered commentary.
+// Cheap parsing: scan the HTML for <h2>/<h3> elements, extract the bare text
+// content as a TOC label, and give each a stable id by slugifying.
+function buildCommentaryToc(html: string): Array<{ id: string; label: string; num: string }> {
+  const items: Array<{ id: string; label: string; num: string }> = [];
+  const re = /<h([23])>([\s\S]*?)<\/h\1>/g;
+  let m: RegExpExecArray | null;
+  let counter = 0;
+  while ((m = re.exec(html)) !== null) {
+    const raw = m[2].replace(/<[^>]*>/g, '').trim();
+    if (!raw) continue;
+    counter++;
+    const id = `cm-${counter}-${raw.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '-').replace(/(^-|-$)/g, '').slice(0, 40)}`;
+    items.push({ id, label: raw, num: roman(counter) });
+  }
+  return items;
+}
+function roman(n: number): string {
+  const map: [string, number][] = [['X',10],['IX',9],['V',5],['IV',4],['I',1]];
+  let s = ''; let r = n;
+  for (const [v, k] of map) { while (r >= k) { s += v; r -= k; } }
+  return s;
+}
+
+// Inject scroll-margin-anchor ids onto the headings of the rendered commentary.
+// We do it after the fact so the TOC and the heading ids stay in sync without
+// the renderer having to know about TOC concerns.
+function addCommentaryAnchors(html: string, toc: Array<{ id: string }>): string {
+  let idx = 0;
+  return html.replace(/<h([23])>/g, (full, level) => {
+    const item = toc[idx];
+    idx++;
+    if (!item) return full;
+    return `<h${level} id="${item.id}">`;
+  });
+}
+const commentaryToc = buildCommentaryToc(commentaryHtml);
+const commentaryWithAnchors = addCommentaryAnchors(commentaryHtml, commentaryToc);
+
+// Group related entities by type for the left rail.
+type Group = { type: EntityType; items: RefSummary[] };
+function groupRelated(card: PassageCard): Group[] {
+  const order: EntityType[] = ['term', 'dogma', 'exercise', 'motif', 'person', 'place'];
+  const buckets: Record<EntityType, RefSummary[]> = {
+    term: card.terms ?? [],
+    dogma: card.dogmas ?? [],
+    exercise: card.exercises ?? [],
+    motif: card.motifs ?? [],
+    person: card.people ?? [],
+    place: card.place ? [card.place] : [],
+  };
+  return order.filter(t => buckets[t].length > 0).map(t => ({ type: t, items: buckets[t] }));
+}
+const relatedGroups = groupRelated(card);
+
+// SEO
+const roman_b = romanize(card.book);
+const title = lang === 'ru'
+  ? `Размышления ${roman_b}.${card.chapter} — академическое издание`
+  : `Meditations ${roman_b}.${card.chapter} — academic edition`;
+const description = lang === 'ru'
+  ? `Греческий текст, перевод Роговина, филологический комментарий и связи с философскими концептами.`
+  : `Greek text, English translation, philological commentary and links to philosophical concepts.`;
+
+// Flatten Portable Text to a plain string — for the Quotation schema text.
+function ptText(blocks: PTBlock[] | undefined): string {
+  if (!blocks) return '';
+  const out: string[] = [];
+  for (const b of blocks) {
+    for (const c of b.children ?? []) {
+      if (typeof c.text === 'string') out.push(c.text);
+    }
+    out.push('\n');
+  }
+  return out.join('').replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+const quotationText = lang === 'ru'
+  ? ptText(card.russianText)
+  : ptText(card.englishText);
+const translator = lang === 'ru'
+  ? (card.russianTranslator || 'Семён Роговин')
+  : (card.englishTranslator || 'George Long');
+const translationYear = lang === 'ru' ? '1914' : '1862';
+const fullUrl = pageUrl(lang, `/passage/${card.book}/${card.chapter}`);
+
+// JSON-LD structured data — same shape as the legacy passage page so search
+// engines see a consistent corpus: Quotation (the passage itself, attributed
+// to Marcus, part of the Meditations book) + BreadcrumbList.
+const jsonLd: Record<string, unknown>[] = [
+  passageJsonLd({
+    lang,
+    bookNum: card.book,
+    romanBook: roman_b,
+    section: String(card.chapter),
+    text: quotationText,
+    translator,
+    translationYear,
+    url: fullUrl,
+  }),
+  breadcrumbsJsonLd([
+    { name: lang === 'ru' ? 'Главная'   : 'Home',     url: pageUrl(lang, '/') },
+    { name: lang === 'ru' ? 'Оглавление': 'Contents', url: pageUrl(lang, '/contents') },
+    { name: lang === 'ru' ? `Книга ${roman_b}` : `Book ${roman_b}`, url: pageUrl(lang, `/book/${card.book}`) },
+    { name: `${roman_b}.${card.chapter}`, url: fullUrl },
+  ]),
+];
+
+// Greek-section label
+const greekLabel = t.originalGreek;
+
+// Choose primary translation per locale.
+const primary = lang === 'ru'
+  ? { name: t.rogovinLabel, flag: t.rogovinFlag, html: russianHtml, key: 'rogovin' }
+  : { name: t.longLabel,    flag: t.longFlag,    html: longHtml,    key: 'long' };
+
+const altEn = lang === 'en'
+  ? { name: t.modernLabel, flag: t.modernFlag, html: modernHtml, key: 'modern' }
+  : null;
+
+// ── Client-side serialised data ──────────────────────────────────────────────
+// The xref popover is implemented as inline vanilla JS rather than a React
+// island for now — it keeps the bundle small and avoids hydration cost on the
+// reading surface. It needs the entity index + a few i18n strings; serialise
+// both as JSON blocks the script picks up at runtime.
+const popoverEntities = Array.from(entityIndex.values()).map(e => ({
+  _id: e._id,
+  _type: e._type,
+  slug: e.slug,
+  headword: e.headword,
+  translit: e.translit ?? null,
+  gloss: e.gloss ?? null,
+}));
+const popoverI18n = {
+  openCard: t.openCard,
+  langPrefix,
+  types: Object.fromEntries(
+    (Object.keys(ENTITY_TYPE_LABEL) as EntityType[]).map(k => [k, ENTITY_TYPE_LABEL[k][lang]]),
+  ),
+};
+---
+<Layout
+  title={title}
+  description={description}
+  lang={lang}
+  basePath={`/passage/${card.book}/${card.chapter}`}
+  extraStylesheets={['/academic.css']}
+  jsonLd={jsonLd}
+>
+  <Shell route="passage" lang={lang} pathname={pathname} client:load>
+    <div
+      data-acad-passage
+      data-book={card.book}
+      data-chapter={card.chapter}
+      data-translator-pref={lang === 'en' ? 'long' : 'rogovin'}
+      data-show-annotations="on"
+    >
+    <div class="acad-shell">
+      {/* ─── HEAD ─── */}
+      <header class="acad-head">
+        <div class="acad-head-left">
+          <a href={langPrefix || '/'}>{t.read}</a>
+          <span class="sep">/</span>
+          <a href={`${langPrefix}/book/${card.book}`}>{t.book} {roman_b}</a>
+          <span class="sep">/</span>
+          <span>{card.book}.{card.chapter}</span>
+        </div>
+        <div class="acad-head-right">
+          <div class="acad-ref-row">
+            <span class="acad-ref-num">MED. <strong>{card.book}.{card.chapter}</strong></span>
+            {card.discipline && (
+              <span class={`acad-chip acad-chip-discipline ${card.discipline}`}>
+                <span class="acad-chip-dot"></span>
+                {DISCIPLINE_LABEL[card.discipline][lang]}
+              </span>
+            )}
+            {card.place && (
+              <span class="acad-chip acad-chip-place">
+                <span style="opacity:.5">⌖</span>
+                <a href={`${langPrefix}/place/${card.place.slug}`}>{card.place.headword}</a>
+              </span>
+            )}
+            <div class="acad-tools-mini">
+              <button data-acad-annotations-toggle class="on" title={t.annotationsHint}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                {t.annotations}
+              </button>
+              {lang === 'en' && altEn && (
+                <button data-acad-compare-toggle title={t.compare}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 4v16M16 4v16M4 8h8M12 16h8"/></svg>
+                  {t.compare}
+                </button>
+              )}
+              <button data-acad-copy title={t.copy}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+                {t.copy}
+              </button>
+              <button data-acad-cite title={t.cite}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 7h4v6c0 2-1 4-4 4M14 7h4v6c0 2-1 4-4 4"/></svg>
+                {t.cite}
+              </button>
+            </div>
+          </div>
+          {lang === 'en' && altEn && (
+            <div class="acad-translator-row">
+              <button class="acad-tbadge on" data-acad-pref="long">
+                <span class="acad-tbadge-flag">{t.longFlag}</span>
+                {t.longLabel}
+              </button>
+              <button class="acad-tbadge" data-acad-pref="modern">
+                <span class="acad-tbadge-flag">{t.modernFlag}</span>
+                {t.modernLabel}
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ─── LEFT RAIL — related entities ─── */}
+      <aside class="acad-related">
+        <div class="acad-margin-label">{t.related}</div>
+        {relatedGroups.map(g => (
+          <div class="acad-related-group">
+            <div class="acad-related-label">{ENTITY_TYPE_LABEL[g.type][lang]}</div>
+            <div class="acad-related-list">
+              {g.items.map(it => (
+                <a class="acad-rel" href={`${langPrefix}/${ENTITY_TYPE_PATH[g.type]}/${it.slug}`}>
+                  <span class="acad-rel-headword">
+                    {it.headword}
+                    {it.gloss && <em>· {it.gloss}</em>}
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+      </aside>
+
+      {/* ─── CENTER — primary translation, Greek block ─── */}
+      <div class="acad-center">
+        {/* Primary translation (default visible) */}
+        <div
+          class="acad-main"
+          data-acad-translation="primary"
+          data-trans={primary.key}
+        >
+          <div class="acad-main-label">
+            <span class="name">{primary.name}</span>
+            <span class="meta">{primary.flag}</span>
+          </div>
+          <div class="acad-translation" set:html={primary.html} />
+        </div>
+
+        {/* Alternate (Modern English) — hidden by default, swapped by the
+            translator-pref island. Only rendered for EN locale. */}
+        {lang === 'en' && altEn && (
+          <div
+            class="acad-main"
+            data-acad-translation="alt"
+            data-trans={altEn.key}
+            hidden
+          >
+            <div class="acad-main-label">
+              <span class="name">{altEn.name}</span>
+              <span class="meta">{altEn.flag}</span>
+            </div>
+            <div class="acad-translation" set:html={altEn.html} />
+          </div>
+        )}
+
+        {/* Compare mode — pre-rendered, hidden by default; the compare button
+            toggles it. Renders Greek + the alt translation side-by-side. */}
+        {lang === 'en' && altEn && (
+          <div class="acad-compare" data-acad-compare hidden>
+            <div class="acad-compare-col">
+              <div class="acad-main-label">
+                <span class="name">{primary.name}</span>
+                <span class="meta">{primary.flag}</span>
+              </div>
+              <div class="acad-translation" set:html={primary.html} />
+            </div>
+            <div class="acad-compare-col">
+              <div class="acad-main-label">
+                <span class="name">{altEn.name}</span>
+                <span class="meta">{altEn.flag}</span>
+              </div>
+              <div class="acad-translation" set:html={altEn.html} />
+            </div>
+          </div>
+        )}
+
+        {/* Greek block — sits BELOW the translation per design spec. */}
+        <section class="acad-greek">
+          <span class="acad-greek-label">{greekLabel}</span>
+          <div class="acad-greek-text" set:html={greekHtml} />
+          <div class="acad-greek-foot">
+            <span>{t.greekEdition}</span>
+          </div>
+        </section>
+      </div>
+
+      {/* ─── RIGHT RAIL — marginalia (footnotes + TOC) ─── */}
+      <aside class="acad-margin">
+        {footnoteList.length > 0 && (
+          <div class="acad-margin-section">
+            <div class="acad-margin-label">{t.marginalia}</div>
+            {footnoteList.map(fn => (
+              <div
+                class={`acad-fn${fn.kind === 'comm' ? ' is-comm' : ''}`}
+                data-fn-key={fn.key}
+                data-fn-num={fn.num}
+              >
+                <span class="acad-fn-num">{fn.num}</span>
+                <span>
+                  <span class="fn-key">
+                    {fn.kind === 'comm' ? t.translator_comm : t.translator_trans} · {fn.key}
+                  </span>
+                  <span set:html={fn.bodyHtml} />
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {commentaryToc.length > 0 && (
+          <div class="acad-margin-section" data-acad-toc>
+            <div class="acad-margin-label">{t.commentary}</div>
+            {commentaryToc.map((item, i) => (
+              <a
+                class={`acad-toc-item${i === 0 ? ' on' : ''}`}
+                href={`#${item.id}`}
+                data-toc-anchor={item.id}
+              >
+                <span class="toc-n">§ {item.num}</span>{item.label}
+              </a>
+            ))}
+          </div>
+        )}
+      </aside>
+
+      {/* ─── COMMENTARY DIVIDER ─── */}
+      {commentaryHtml && (
+        <div class="acad-commentary-divider">
+          <div class="center">
+            <span class="label">{t.commentary}</span>
+            <hr />
+          </div>
+        </div>
+      )}
+
+      {/* ─── COMMENTARY BODY (occupies the center column) ─── */}
+      {commentaryHtml && (
+        <article class="acad-commentary" style="grid-column: 2" set:html={commentaryWithAnchors} />
+      )}
+
+      {/* ─── META FOOTER ─── */}
+      <footer class="acad-meta-foot">
+        <div class="meta-row">
+          {card.place && (
+            <div>
+              <span>{t.composedAt}</span>
+              <strong>{card.place.headword}</strong>
+            </div>
+          )}
+          {card.discipline && (
+            <div>
+              <span>{t.discipline}</span>
+              <strong>{DISCIPLINE_LABEL[card.discipline][lang]}</strong>
+            </div>
+          )}
+          {card.createdAt && (
+            <div>
+              <span>{t.recordAdded}</span>
+              <strong>{card.createdAt.slice(0, 10)}</strong>
+            </div>
+          )}
+          <div>
+            <span>{t.status}</span>
+            <strong>{card.status}</strong>
+          </div>
+        </div>
+      </footer>
+    </div>{/* end .acad-shell — desktop layout */}
+
+    {/* ─── MOBILE LAYOUT ─── (hidden at ≥900px via CSS).
+         All data + rendered HTML is reused from above; only the markup
+         differs to give a phone-shaped reading experience: pinned Greek,
+         tab strip for translations, inline footnote callouts, horizontal
+         related scroller, sticky bottom action bar, bottom-sheet TOC. */}
+    <div class="acad-m-shell">
+      {/* Hero */}
+      <div class="acad-m-hero">
+        <div class="acad-m-crumbs">
+          <a href={langPrefix || '/'}>{t.read}</a>
+          <span class="sep">·</span>
+          <a href={`${langPrefix}/book/${card.book}`}>{t.book} {roman_b}</a>
+        </div>
+        <div class="acad-m-chiprow">
+          {card.discipline && (
+            <span class={`acad-m-disc ${card.discipline}`}>
+              <span class="dot"></span>
+              {DISCIPLINE_LABEL[card.discipline][lang]}
+            </span>
+          )}
+          {card.place && (
+            <a class="acad-m-place" href={`${langPrefix}/place/${card.place.slug}`}>
+              <span class="star">⌖</span>{card.place.headword}
+            </a>
+          )}
+        </div>
+        <h1 class="acad-m-title">
+          <span class="acad-m-ref">MED. {roman_b}.{card.chapter}</span>
+        </h1>
+      </div>
+
+      {/* Greek pin — collapsible */}
+      <section class="acad-m-greek" data-acad-m-greek>
+        <div class="acad-m-greek-head">
+          <span class="lbl">{t.originalGreek}</span>
+          <button class="acad-m-greek-tog" data-acad-m-greek-tog aria-label="Hide Greek">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 8h10"/></svg>
+          </button>
+        </div>
+        <div class="acad-m-greek-text" set:html={greekHtml} />
+        <div class="acad-m-greek-foot">
+          <span>{t.greekEdition}</span>
+        </div>
+      </section>
+      <button class="acad-m-greek-restore" data-acad-m-greek-show hidden>
+        <span class="ic">+</span>{lang === 'ru' ? 'Показать греческий' : 'Show Greek source'}
+      </button>
+
+      {/* Translation tab strip — RU has only Rogovin (single tab visually
+          documents the translator); EN has Long + Modern with a toggle. */}
+      <div class="acad-m-tabstrip">
+        <div class="acad-m-tabstrip-inner">
+          {lang === 'en' ? (
+            <>
+              <button class="acad-m-tab" data-acad-m-tab="long">
+                <span class="flag">EN</span>
+                <span class="name">Long</span>
+                <span class="sub">1862</span>
+              </button>
+              <button class="acad-m-tab" data-acad-m-tab="modern">
+                <span class="flag">EN</span>
+                <span class="name">Modern</span>
+                <span class="sub">this ed.</span>
+              </button>
+            </>
+          ) : (
+            <button class="acad-m-tab" data-acad-m-tab="rogovin">
+              <span class="flag">RU</span>
+              <span class="name">Роговин</span>
+              <span class="sub">1914</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Primary translation body */}
+      <article class="acad-m-trans" data-acad-m-translation="primary" data-trans={primary.key}>
+        <div class="acad-m-trans-head">
+          <span class="name">{primary.name}</span>
+          <span class="meta">· {primary.flag}</span>
+        </div>
+        <div class="acad-m-trans-body" set:html={primary.html} />
+      </article>
+
+      {/* Alternate translation body (EN-only, hidden until pref switches) */}
+      {lang === 'en' && altEn && (
+        <article class="acad-m-trans" data-acad-m-translation="alt" data-trans={altEn.key} hidden>
+          <div class="acad-m-trans-head">
+            <span class="name">{altEn.name}</span>
+            <span class="meta">· {altEn.flag}</span>
+          </div>
+          <div class="acad-m-trans-body" set:html={altEn.html} />
+        </article>
+      )}
+
+      {/* Footnote inline callout — populated by JS when reader taps a ¹. */}
+      <div class="acad-m-fn-callout" data-acad-m-fn-callout hidden>
+        <div class="acad-m-fn-head">
+          <span class="n" data-acad-m-fn-num></span>
+          <span class="k" data-acad-m-fn-key></span>
+          <button class="x" data-acad-m-fn-close aria-label="Close">×</button>
+        </div>
+        <div class="acad-m-fn-body" data-acad-m-fn-body></div>
+      </div>
+
+      {/* Marginalia list */}
+      {footnoteList.length > 0 && (
+        <section class="acad-m-section">
+          <div class="acad-m-section-head">
+            <span class="lbl">{t.marginalia}</span>
+            <span class="ct">{footnoteList.length}</span>
+          </div>
+          {footnoteList.map(fn => (
+            <button
+              class={`acad-m-fn-row${fn.kind === 'comm' ? ' is-comm' : ''}`}
+              data-fn-key={fn.key}
+              data-fn-num={fn.num}
+              data-acad-m-fn-open
+            >
+              <span class="n">{fn.num}</span>
+              <span class="bd">
+                <span class="k">
+                  {fn.kind === 'comm' ? t.translator_comm : t.translator_trans} · {fn.key}
+                </span>
+                <span class="tx" set:html={fn.bodyHtml} />
+              </span>
+            </button>
+          ))}
+        </section>
+      )}
+
+      {/* Related entities horizontal scroller */}
+      {relatedGroups.length > 0 && (
+        <section class="acad-m-section">
+          <div class="acad-m-section-head">
+            <span class="lbl">{t.related}</span>
+            <span class="ct">{relatedGroups.reduce((n, g) => n + g.items.length, 0)}</span>
+          </div>
+          <div class="acad-m-relrow">
+            <div class="acad-m-relrow-inner">
+              {relatedGroups.flatMap(g => g.items.map(it => ({ g, it }))).map(({ g, it }) => (
+                <a
+                  class={`acad-m-relcard acad-m-relcard-${g.type}`}
+                  href={`${langPrefix}/${ENTITY_TYPE_PATH[g.type]}/${it.slug}`}
+                >
+                  <span class="type">{ENTITY_TYPE_LABEL[g.type][lang]}</span>
+                  <span class="hw">{it.headword}</span>
+                  {it.gloss && <span class="gl">{it.gloss}</span>}
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Commentary body — same HTML as desktop, just flow-styled for narrow column */}
+      {commentaryHtml && (
+        <section class="acad-m-section acad-m-section-cmt">
+          <div class="acad-m-section-head">
+            <span class="lbl">{t.commentary}</span>
+            <span class="ct">{commentaryToc.length || ''}</span>
+          </div>
+          <article class="acad-m-commentary" set:html={commentaryWithAnchors} />
+        </section>
+      )}
+
+      {/* Meta footer */}
+      <div class="acad-m-meta">
+        {card.place && (
+          <div><span>{t.composedAt}</span><strong>{card.place.headword}</strong></div>
+        )}
+        {card.discipline && (
+          <div><span>{t.discipline}</span><strong>{DISCIPLINE_LABEL[card.discipline][lang]}</strong></div>
+        )}
+        {card.createdAt && (
+          <div><span>{t.recordAdded}</span><strong>{card.createdAt.slice(0, 10)}</strong></div>
+        )}
+        <div><span>{t.status}</span><strong>{card.status}</strong></div>
+      </div>
+
+      {/* Spacer so content above bottombar isn't covered by it */}
+      <div class="acad-m-bottombar-spacer"></div>
+
+      {/* Sticky bottom action bar — annotation toggle, sections sheet, copy
+          permalink (relies on existing data-acad-copy handler if present). */}
+      <div class="acad-m-bottombar">
+        <button class="acad-m-bbtn" data-acad-annotations-toggle aria-label={t.annotations}>
+          <span class="ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+          <span class="lb">{t.annotations}</span>
+        </button>
+        {commentaryToc.length > 0 && (
+          <button class="acad-m-bbtn" data-acad-m-toc-toggle aria-label={t.commentary}>
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+            </span>
+            <span class="lb">{t.commentary}</span>
+            <span class="ct">{commentaryToc.length}</span>
+          </button>
+        )}
+        <a class="acad-m-bbtn" href={`${langPrefix}/passage/${card.book}/${card.chapter}`}>
+          <span class="ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+          </span>
+          <span class="lb">{t.copy}</span>
+        </a>
+      </div>
+
+      {/* Sections bottom sheet (commentary TOC) */}
+      {commentaryToc.length > 0 && (
+        <>
+          <div class="acad-m-sheet-scrim" data-acad-m-sheet-scrim hidden></div>
+          <div class="acad-m-sheet" data-acad-m-sheet="toc" hidden>
+            <div class="acad-m-sheet-handle"></div>
+            <div class="acad-m-sheet-head">
+              <span class="lbl">{t.commentary}</span>
+              <button data-acad-m-sheet-close aria-label="Close">×</button>
+            </div>
+            {commentaryToc.map((item, i) => (
+              <a
+                class={`acad-m-sheet-item${i === 0 ? ' on' : ''}`}
+                href={`#${item.id}`}
+                data-acad-m-sheet-jump
+              >
+                <span class="num">§ {item.num}</span>
+                <span class="ttl">{item.label}</span>
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+    </div>{/* end .acad-m-shell */}
+
+    </div>{/* end data-acad-passage common parent */}
+
+    {/* ─── XREF POPOVER (one instance reused across all xrefs) ─── */}
+    <div id="acad-xref-popover" class="xref-pop" hidden>
+      <div class="xref-pop-head">
+        <div class="xref-pop-type"></div>
+        <h4 class="xref-pop-gk"></h4>
+        <div class="xref-pop-translit"></div>
+      </div>
+      <div class="xref-pop-body"></div>
+      <div class="xref-pop-foot">
+        <a class="xref-pop-open" href="#">Open card →</a>
+      </div>
+    </div>
+
+    {/* Inline data blobs for the popover JS — kept in JSON-typed <script> tags
+        so browsers don't execute them; the runtime parses them by id. */}
+    <script is:inline type="application/json" id="acad-entity-data" set:html={JSON.stringify(popoverEntities)} />
+    <script is:inline type="application/json" id="acad-popover-i18n" set:html={JSON.stringify(popoverI18n)} />
+  </Shell>
+</Layout>
+
+<script is:inline>
+  /* Pre-paint state restore. Runs synchronously to avoid a flash of the wrong
+     translation or wrong annotations setting. Interactive handlers are attached
+     in the following <script> blocks. */
+  (function () {
+    try {
+      const root = document.querySelector('[data-acad-passage]');
+      if (!root) return;
+      const isEn = document.documentElement.getAttribute('lang') !== 'ru';
+
+      // Translator pref (EN only). Sync BOTH desktop and mobile panels —
+      // each layout owns its own [data-acad-translation="primary"|"alt"]
+      // pair under the common [data-acad-passage] root.
+      if (isEn) {
+        const pref = localStorage.getItem('acad-translator-pref');
+        if (pref === 'modern' || pref === 'long') {
+          root.setAttribute('data-translator-pref', pref);
+          for (const primary of root.querySelectorAll('[data-acad-translation="primary"]')) {
+            if (pref === 'modern') primary.setAttribute('hidden', '');
+            else                   primary.removeAttribute('hidden');
+          }
+          for (const alt of root.querySelectorAll('[data-acad-translation="alt"]')) {
+            if (pref === 'modern') alt.removeAttribute('hidden');
+            else                   alt.setAttribute('hidden', '');
+          }
+          for (const pill of root.querySelectorAll('[data-acad-pref], [data-acad-m-tab]')) {
+            const key = pill.getAttribute('data-acad-pref') || pill.getAttribute('data-acad-m-tab');
+            pill.classList.toggle('on', key === pref);
+          }
+        }
+      }
+
+      // Annotations toggle (all locales) — default 'on'
+      const annot = localStorage.getItem('acad-annotations');
+      if (annot === 'off') {
+        root.setAttribute('data-show-annotations', 'off');
+        const btn = root.querySelector('[data-acad-annotations-toggle]');
+        if (btn) btn.classList.remove('on');
+      }
+    } catch {}
+  })();
+</script>
+
+<script is:inline>
+  /* Annotations toggle — flip data-show-annotations between "on" and "off",
+     persist the choice in localStorage so it carries across pages. Two
+     buttons may exist (desktop header + mobile bottombar) — sync both. */
+  (function () {
+    const root = document.querySelector('[data-acad-passage]');
+    if (!root) return;
+    const btns = Array.from(root.querySelectorAll('[data-acad-annotations-toggle]'));
+    if (btns.length === 0) return;
+
+    const sync = () => {
+      const on = root.getAttribute('data-show-annotations') !== 'off';
+      for (const b of btns) b.classList.toggle('on', on);
+    };
+    sync();
+
+    for (const btn of btns) {
+      btn.addEventListener('click', () => {
+        const next = root.getAttribute('data-show-annotations') === 'off' ? 'on' : 'off';
+        root.setAttribute('data-show-annotations', next);
+        sync();
+        try { localStorage.setItem('acad-annotations', next); } catch {}
+      });
+    }
+  })();
+</script>
+
+<script is:inline>
+  /* Mobile-only handlers: translator tab strip, Greek pin toggle, footnote
+     callouts, sections bottom sheet. These attach unconditionally — at
+     desktop widths their target elements are display:none so events on
+     them never fire. */
+  (function () {
+    const root = document.querySelector('[data-acad-passage]');
+    if (!root) return;
+
+    // ── Tab strip: keep .on class in sync with data-translator-pref ──
+    const tabs = Array.from(root.querySelectorAll('[data-acad-m-tab]'));
+    const syncTabs = () => {
+      const pref = root.getAttribute('data-translator-pref');
+      for (const t of tabs) t.classList.toggle('on', t.getAttribute('data-acad-m-tab') === pref);
+    };
+    syncTabs();
+    for (const tab of tabs) {
+      tab.addEventListener('click', () => {
+        const pref = tab.getAttribute('data-acad-m-tab');
+        if (!pref) return;
+        try { localStorage.setItem('acad-translator-pref', pref); } catch {}
+        root.setAttribute('data-translator-pref', pref);
+        // Sync desktop pill state and panel visibility too.
+        const primary = root.querySelector('[data-acad-translation="primary"]');
+        const alt     = root.querySelector('[data-acad-translation="alt"]');
+        if (primary && alt) {
+          if (pref === 'modern') { primary.setAttribute('hidden', ''); alt.removeAttribute('hidden'); }
+          else                   { alt.setAttribute('hidden', '');     primary.removeAttribute('hidden'); }
+        }
+        // Mobile primary/alt panels follow the same rule.
+        const mPrimary = root.querySelector('[data-acad-m-translation="primary"]');
+        const mAlt     = root.querySelector('[data-acad-m-translation="alt"]');
+        if (mPrimary && mAlt) {
+          if (pref === 'modern') { mPrimary.setAttribute('hidden', ''); mAlt.removeAttribute('hidden'); }
+          else                   { mAlt.setAttribute('hidden', '');     mPrimary.removeAttribute('hidden'); }
+        }
+        for (const p of root.querySelectorAll('[data-acad-pref]')) {
+          p.classList.toggle('on', p.getAttribute('data-acad-pref') === pref);
+        }
+        syncTabs();
+      });
+    }
+
+    // ── Greek pin toggle on mobile ──
+    const greek    = root.querySelector('[data-acad-m-greek]');
+    const greekTog = root.querySelector('[data-acad-m-greek-tog]');
+    const greekShow= root.querySelector('[data-acad-m-greek-show]');
+    if (greek && greekTog && greekShow) {
+      greekTog.addEventListener('click', () => {
+        greek.setAttribute('hidden', '');
+        greekShow.removeAttribute('hidden');
+      });
+      greekShow.addEventListener('click', () => {
+        greek.removeAttribute('hidden');
+        greekShow.setAttribute('hidden', '');
+      });
+    }
+
+    // ── Footnote callout: tap a row or an inline ¹ on mobile to show
+    //    its body inline above the translation; tap × to dismiss. The
+    //    desktop fn-highlight handler already lives in another script —
+    //    we only handle the mobile-specific callout panel here. ──
+    const callout = root.querySelector('[data-acad-m-fn-callout]');
+    const co_num  = callout?.querySelector('[data-acad-m-fn-num]');
+    const co_key  = callout?.querySelector('[data-acad-m-fn-key]');
+    const co_body = callout?.querySelector('[data-acad-m-fn-body]');
+    const co_close= callout?.querySelector('[data-acad-m-fn-close]');
+
+    function openCallout(key) {
+      const entry = root.querySelector('.acad-m-fn-row[data-fn-key="' + CSS.escape(key) + '"]');
+      const mark  = root.querySelector('.fn-mark[data-fn-key="' + CSS.escape(key) + '"]');
+      if (!entry || !callout) return;
+      const num = entry.getAttribute('data-fn-num') || '';
+      const kindComm = entry.classList.contains('is-comm');
+      callout.classList.toggle('is-comm', kindComm);
+      if (co_num) co_num.textContent = num;
+      if (co_key) co_key.textContent = entry.querySelector('.k')?.textContent ?? '';
+      if (co_body) co_body.innerHTML = entry.querySelector('.tx')?.innerHTML ?? '';
+      callout.removeAttribute('hidden');
+      callout.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      void mark;
+    }
+    function closeCallout() {
+      if (callout) callout.setAttribute('hidden', '');
+    }
+
+    root.addEventListener('click', (e) => {
+      const t = e.target instanceof Element ? e.target : null;
+      if (!t) return;
+      // Mobile sticky callout opens for taps on inline marks AND row entries.
+      const inlineMark = t.closest('.acad-m-shell .fn-mark, .acad-m-shell.fn-mark');
+      const rowEntry   = t.closest('[data-acad-m-fn-open]');
+      const onShell    = t.closest('.acad-m-shell');
+      if ((inlineMark || rowEntry) && onShell) {
+        const key = (rowEntry || inlineMark)?.getAttribute('data-fn-key');
+        if (key) { e.preventDefault(); openCallout(key); }
+      }
+    });
+    co_close?.addEventListener('click', closeCallout);
+
+    // ── Sections bottom sheet (commentary TOC) ──
+    const sheet  = root.querySelector('[data-acad-m-sheet="toc"]');
+    const scrim  = root.querySelector('[data-acad-m-sheet-scrim]');
+    const tocBtn = root.querySelector('[data-acad-m-toc-toggle]');
+    const closeBtn = root.querySelector('[data-acad-m-sheet-close]');
+    function openSheet() {
+      sheet?.removeAttribute('hidden');
+      scrim?.removeAttribute('hidden');
+    }
+    function closeSheet() {
+      sheet?.setAttribute('hidden', '');
+      scrim?.setAttribute('hidden', '');
+    }
+    tocBtn?.addEventListener('click', openSheet);
+    closeBtn?.addEventListener('click', closeSheet);
+    scrim?.addEventListener('click', closeSheet);
+    for (const item of root.querySelectorAll('[data-acad-m-sheet-jump]')) {
+      item.addEventListener('click', () => setTimeout(closeSheet, 50));
+    }
+  })();
+</script>
+
+<script is:inline>
+  /* Translator-pill click handler. Persists the user's choice in localStorage
+     and swaps the visible translation block. EN-locale only. Syncs BOTH
+     desktop pills and mobile tab strip + both layouts' translation panels. */
+  (function () {
+    const root = document.querySelector('[data-acad-passage]');
+    if (!root) return;
+    const pills = Array.from(root.querySelectorAll('[data-acad-pref]'));
+    if (!pills.length) return;
+    const primaries = Array.from(root.querySelectorAll('[data-acad-translation="primary"]'));
+    const alts     = Array.from(root.querySelectorAll('[data-acad-translation="alt"]'));
+    if (!primaries.length || !alts.length) return;
+
+    function setPref(pref) {
+      try { localStorage.setItem('acad-translator-pref', pref); } catch {}
+      root.setAttribute('data-translator-pref', pref);
+      for (const p of primaries) {
+        if (pref === 'modern') p.setAttribute('hidden', '');
+        else                   p.removeAttribute('hidden');
+      }
+      for (const a of alts) {
+        if (pref === 'modern') a.removeAttribute('hidden');
+        else                   a.setAttribute('hidden', '');
+      }
+      for (const pill of pills) {
+        pill.classList.toggle('on', pill.getAttribute('data-acad-pref') === pref);
+      }
+      for (const tab of root.querySelectorAll('[data-acad-m-tab]')) {
+        tab.classList.toggle('on', tab.getAttribute('data-acad-m-tab') === pref);
+      }
+    }
+
+    pills.forEach((pill) => {
+      pill.addEventListener('click', () => {
+        const pref = pill.getAttribute('data-acad-pref');
+        if (pref === 'long' || pref === 'modern') setPref(pref);
+      });
+    });
+  })();
+
+  /* Compare-mode toggle: shows the two-up side-by-side translation grid. */
+  (function () {
+    const root = document.querySelector('[data-acad-passage]');
+    if (!root) return;
+    const btn = root.querySelector('[data-acad-compare-toggle]');
+    const compare = root.querySelector('[data-acad-compare]');
+    const primary = root.querySelector('[data-acad-translation="primary"]');
+    const alt     = root.querySelector('[data-acad-translation="alt"]');
+    if (!btn || !compare || !primary) return;
+
+    btn.addEventListener('click', () => {
+      const showing = !compare.hasAttribute('hidden');
+      if (showing) {
+        compare.setAttribute('hidden', '');
+        primary.removeAttribute('hidden');
+        if (alt && root.getAttribute('data-translator-pref') === 'modern') {
+          primary.setAttribute('hidden', '');
+          alt.removeAttribute('hidden');
+        }
+        btn.classList.remove('on');
+      } else {
+        compare.removeAttribute('hidden');
+        primary.setAttribute('hidden', '');
+        if (alt) alt.setAttribute('hidden', '');
+        btn.classList.add('on');
+      }
+    });
+  })();
+
+  /* XREF popover. Default: cross-refs render as invisible-as-link prose (see
+     academic.css — no underline, no chip). Hover (desktop) or click (touch +
+     desktop) reveals a popover with the term's gloss + an "Open card →" link.
+     The xref's own click is suppressed — navigation only happens via the
+     popover button. This matches the design's behaviour. */
+  (function () {
+    const pop = document.getElementById('acad-xref-popover');
+    if (!pop) return;
+    const dataEl = document.getElementById('acad-entity-data');
+    const i18nEl = document.getElementById('acad-popover-i18n');
+    if (!dataEl || !i18nEl) return;
+
+    let entities = [];
+    let i18n = { openCard: 'Open card →', langPrefix: '', types: {} };
+    try {
+      entities = JSON.parse(dataEl.textContent || '[]');
+      i18n = JSON.parse(i18nEl.textContent || '{}');
+    } catch {}
+    const index = new Map(entities.map((e) => [e._id, e]));
+
+    const popType = pop.querySelector('.xref-pop-type');
+    const popHw   = pop.querySelector('.xref-pop-gk');
+    const popTl   = pop.querySelector('.xref-pop-translit');
+    const popBody = pop.querySelector('.xref-pop-body');
+    const popOpen = pop.querySelector('.xref-pop-open');
+
+    let hoverTimer = null;
+    let stickyAnchor = null;
+    const isHover = window.matchMedia('(hover: hover)').matches;
+
+    function show(anchor, sticky) {
+      const id = anchor.getAttribute('data-entity-id');
+      const ent = index.get(id);
+      if (!ent) return;
+      const type = ent._type || anchor.getAttribute('data-entity-type') || '';
+      const typeLabel = (i18n.types && i18n.types[type]) || type.toUpperCase();
+
+      popType.textContent = typeLabel;
+      popHw.textContent = ent.headword || '';
+      if (ent.translit) {
+        popTl.textContent = ent.translit;
+        popTl.style.display = '';
+      } else {
+        popTl.style.display = 'none';
+      }
+      popBody.textContent = ent.gloss || '';
+      popOpen.setAttribute('href', anchor.getAttribute('href') || '#');
+      popOpen.textContent = i18n.openCard || 'Open card →';
+
+      // Position. Insert into DOM first if hidden so we can read offsetWidth.
+      pop.removeAttribute('hidden');
+      const r = anchor.getBoundingClientRect();
+      const w = pop.offsetWidth || 320;
+      let left = r.left + window.scrollX;
+      let top  = r.bottom + window.scrollY + 6;
+      if (left + w > window.innerWidth - 12) left = window.innerWidth - w - 12;
+      if (left < 12) left = 12;
+      pop.style.left = left + 'px';
+      pop.style.top  = top + 'px';
+
+      if (sticky) {
+        if (stickyAnchor && stickyAnchor !== anchor) stickyAnchor.classList.remove('xref-active');
+        stickyAnchor = anchor;
+        anchor.classList.add('xref-active');
+      }
+    }
+
+    function hide() {
+      pop.setAttribute('hidden', '');
+      if (stickyAnchor) {
+        stickyAnchor.classList.remove('xref-active');
+        stickyAnchor = null;
+      }
+    }
+
+    // Click: prevent default navigation, open sticky popover.
+    document.addEventListener('click', (e) => {
+      const xref = e.target instanceof Element ? e.target.closest('.xref') : null;
+      if (xref) {
+        e.preventDefault();
+        if (stickyAnchor === xref) { hide(); return; }
+        show(xref, true);
+        return;
+      }
+      // Click inside the popover (e.g. the Open-card link) — let it through.
+      if (pop.contains(e.target)) return;
+      // Click outside any xref or the popover — dismiss.
+      if (stickyAnchor) hide();
+    });
+
+    // Hover behaviour — desktop pointers only. Touch pointers stick to click.
+    if (isHover) {
+      document.querySelectorAll('.xref').forEach((xref) => {
+        xref.addEventListener('mouseenter', () => {
+          if (stickyAnchor) return;
+          clearTimeout(hoverTimer);
+          show(xref, false);
+        });
+        xref.addEventListener('mouseleave', () => {
+          if (stickyAnchor) return;
+          hoverTimer = setTimeout(hide, 180);
+        });
+      });
+      pop.addEventListener('mouseenter', () => clearTimeout(hoverTimer));
+      pop.addEventListener('mouseleave', () => {
+        if (stickyAnchor) return;
+        hoverTimer = setTimeout(hide, 180);
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hide();
+    });
+  })();
+
+  /* Scroll-spy for the commentary TOC. As the reader scrolls through the
+     commentary article, mark the TOC item whose heading is currently nearest
+     the top of the viewport with `.on`. Anchor-click is unchanged (the href
+     on the TOC item still does the native smooth scroll). */
+  (function () {
+    const toc = document.querySelector('[data-acad-toc]');
+    if (!toc) return;
+    const items = Array.from(toc.querySelectorAll('[data-toc-anchor]'));
+    if (items.length === 0) return;
+
+    const headings = items
+      .map((it) => {
+        const id = it.getAttribute('data-toc-anchor');
+        return id ? document.getElementById(id) : null;
+      })
+      .filter((h) => h);
+    if (headings.length === 0) return;
+
+    let activeId = headings[0].id;
+
+    function setActive(id) {
+      if (id === activeId) return;
+      activeId = id;
+      for (const it of items) {
+        it.classList.toggle('on', it.getAttribute('data-toc-anchor') === id);
+      }
+    }
+
+    /* Track each heading's distance from the "reading line" (~30% from the top
+       of the viewport). The one closest to that line — but not below it — is
+       active. Using IntersectionObserver with a top-band rootMargin gives this
+       almost for free. */
+    const observer = new IntersectionObserver(
+      (entries) => {
+        /* Collect headings currently inside the top band. Pick the bottom-most
+           one (the one the reader has scrolled past most recently). */
+        const visible = entries.filter((e) => e.isIntersecting).map((e) => e.target);
+        if (visible.length > 0) {
+          let pick = visible[0];
+          for (const h of visible) {
+            if (h.getBoundingClientRect().top > pick.getBoundingClientRect().top) pick = h;
+          }
+          setActive(pick.id);
+        } else {
+          /* Nothing in the band — pick the last heading whose top is above the
+             band (the section we've scrolled into). */
+          let pick = null;
+          for (const h of headings) {
+            if (h.getBoundingClientRect().top < 100) pick = h;
+          }
+          if (pick) setActive(pick.id);
+        }
+      },
+      { rootMargin: '0px 0px -70% 0px', threshold: 0 },
+    );
+    for (const h of headings) observer.observe(h);
+  })();
+
+  /* Footnote ↔ marginalia highlight. Clicking an inline ¹ marker scrolls the
+     corresponding margin entry into view and highlights it briefly; clicking
+     the margin entry scrolls back to the marker. Hover on either side dims
+     non-paired entries to draw attention to the pair. */
+  (function () {
+    const root = document.querySelector('[data-acad-passage]');
+    if (!root) return;
+
+    function pairFor(key) {
+      return {
+        marks: Array.from(root.querySelectorAll('.fn-mark[data-fn-key="' + CSS.escape(key) + '"]')),
+        entry: root.querySelector('.acad-fn[data-fn-key="' + CSS.escape(key) + '"]'),
+      };
+    }
+
+    let activeKey = null;
+    function setActive(key) {
+      if (activeKey === key) return;
+      if (activeKey) {
+        const old = pairFor(activeKey);
+        old.marks.forEach((m) => m.classList.remove('is-active'));
+        if (old.entry) old.entry.classList.remove('is-active');
+      }
+      activeKey = key;
+      if (key) {
+        const cur = pairFor(key);
+        cur.marks.forEach((m) => m.classList.add('is-active'));
+        if (cur.entry) cur.entry.classList.add('is-active');
+      }
+    }
+
+    /* Click an inline ¹ marker → scroll its margin entry into view + activate. */
+    root.addEventListener('click', (e) => {
+      const mark = e.target instanceof Element ? e.target.closest('.fn-mark') : null;
+      if (mark) {
+        e.preventDefault();
+        const key = mark.getAttribute('data-fn-key');
+        if (!key) return;
+        const { entry } = pairFor(key);
+        if (entry) entry.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setActive(key);
+        return;
+      }
+      /* Click a margin entry → scroll to the (first) inline marker. */
+      const entry = e.target instanceof Element ? e.target.closest('.acad-fn') : null;
+      if (entry) {
+        const key = entry.getAttribute('data-fn-key');
+        if (!key) return;
+        const { marks } = pairFor(key);
+        const visibleMark = marks.find((m) => !m.closest('[hidden]')) || marks[0];
+        if (visibleMark) visibleMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setActive(key);
+      }
+    });
+
+    /* Hover on either side primes the active pair without scrolling. */
+    function hoverOn(key) {
+      if (!key || activeKey) return;
+      const cur = pairFor(key);
+      cur.marks.forEach((m) => m.classList.add('is-hover'));
+      if (cur.entry) cur.entry.classList.add('is-hover');
+    }
+    function hoverOff(key) {
+      if (!key) return;
+      const cur = pairFor(key);
+      cur.marks.forEach((m) => m.classList.remove('is-hover'));
+      if (cur.entry) cur.entry.classList.remove('is-hover');
+    }
+    root.addEventListener('mouseover', (e) => {
+      const t = e.target instanceof Element ? e.target.closest('.fn-mark, .acad-fn') : null;
+      if (t) hoverOn(t.getAttribute('data-fn-key'));
+    });
+    root.addEventListener('mouseout', (e) => {
+      const t = e.target instanceof Element ? e.target.closest('.fn-mark, .acad-fn') : null;
+      if (t) hoverOff(t.getAttribute('data-fn-key'));
+    });
+
+    /* Click outside any footnote element clears the sticky active pair. */
+    document.addEventListener('click', (e) => {
+      if (!(e.target instanceof Element)) return;
+      if (e.target.closest('.fn-mark, .acad-fn')) return;
+      if (activeKey) setActive(null);
+    });
+  })();
+</script>

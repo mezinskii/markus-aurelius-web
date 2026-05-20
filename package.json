@@ -24,10 +24,12 @@
     "react-dom": "^19.2.5"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.9",
     "@fontsource/eb-garamond": "^5.2.7",
     "@fontsource/inter": "^5.2.8",
     "@resvg/resvg-js": "^2.6.2",
     "satori": "^0.26.0",
+    "typescript": "^5.9.3",
     "wawoff2": "^2.0.1"
   }
 }
