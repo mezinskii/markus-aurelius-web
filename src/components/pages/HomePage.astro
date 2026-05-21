@@ -64,7 +64,8 @@ const jsonLd = [
         </div>
         <div class="books-grid">
           {BOOK_META.map(b => (
-            <a href={`${langPrefix}/book/${b.n}`} class="book-tile">
+            <a href={`${langPrefix}/book/${b.n}`} class={`book-tile${b.enhanced ? ' book-tile-enhanced' : ''}`}>
+              {b.enhanced && <span class="book-tile-badge">{t.enhanced_tile}</span>}
               <div class="book-tile-num">{romanize(b.n)}</div>
               <div class="book-tile-label">{lang === 'ru' ? 'Книга' : 'Book'} {b.n}</div>
               <p class="book-tile-quote">«{b.quote[lang]}»</p>

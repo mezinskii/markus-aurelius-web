@@ -76,6 +76,7 @@ const jsonLd = [
               ? <><em>«Размышления»</em>, книга {romanize(bookNum)}</>
               : <><em>Meditations</em>, Book {romanize(bookNum)}</>}
           </h1>
+          {meta.enhanced && <div class="book-head-badge">{t.enhanced_head}</div>}
           <p class="book-head-note">{meta.note[lang]}</p>
         </div>
       </div>

@@ -1,13 +1,14 @@
 export type Lang = 'en' | 'ru';
 
 export const BOOK_META = [
-  { n: 1,  count: 17, note: { en: 'Debts and lessons to those who shaped him.', ru: 'Благодарности родным и учителям.' },
+  { n: 1,  count: 17, note: { en: 'Written among the Quadi, on the Granua.', ru: 'Написано среди квадов, у реки Грануи.' },
     themes: { en: 'gratitude, teachers, family, formative virtues, debts owed', ru: 'благодарность, учителя, родные, добродетели, долги' },
     quote: { en: 'From my grandfather Verus I learned good morals and the government of my temper.', ru: 'От деда Вера — добрый нрав и владение собой.' } },
-  { n: 2,  count: 17, note: { en: 'Written among the Quadi, on the Granua.', ru: 'Написано среди квадов, у реки Грануи.' },
+  { n: 2,  count: 17, enhanced: true,
+    note: { en: 'Written at Carnuntum.', ru: 'Написано в Карнунте.' },
     themes: { en: 'morning preparation, human nature, getting along with others, brevity of life', ru: 'утренние мысли, людская природа, согласие с другими, краткость жизни' },
     quote: { en: 'Begin the morning by saying to thyself, I shall meet with the busy-body, the ungrateful.', ru: 'С утра говори себе: встречу назойливого, неблагодарного.' } },
-  { n: 3,  count: 16, note: { en: 'Written at Carnuntum.', ru: 'Написано в Карнунте.' },
+  { n: 3,  count: 16, note: { en: 'On time, mortality, and the present hour.', ru: 'О времени, смертности и настоящем часе.' },
     themes: { en: 'time, mortality, reason, the present hour', ru: 'время, смертность, разум, настоящий час' },
     quote: { en: 'We ought to consider not only that our life is daily wasting away.', ru: 'Помни, что жизнь убывает с каждым днём.' } },
   { n: 4,  count: 51, note: { en: 'On the guiding principle and retreat within.', ru: 'О внутренней крепости.' },
@@ -123,6 +124,9 @@ export const UI = {
     return_letters: 'All letters',
     to_label: 'To',
     from_label: 'From',
+    // Enhanced book badge
+    enhanced_tile: 'Annotated',
+    enhanced_head: 'Annotated edition · commentary, terms & exercises',
   },
   ru: {
     site_title: 'Наедине с собой — Марк Аврелий',
@@ -207,6 +211,9 @@ export const UI = {
     return_letters: 'Все письма',
     to_label: 'Кому',
     from_label: 'От',
+    // Enhanced book badge
+    enhanced_tile: 'С комментариями',
+    enhanced_head: 'Расширенное издание · комментарии, термины и упражнения',
   },
 } as const;
 
