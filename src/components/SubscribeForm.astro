@@ -3,6 +3,9 @@ export type Locale = "en" | "ru";
 
 export interface Props {
   locale: Locale;
+  /** When true, hides the internal title and description — useful when the form
+   *  is embedded on a landing page that already has its own heading copy. */
+  minimal?: boolean;
 }
 
 interface FormCopy {
@@ -34,7 +37,7 @@ const COPY: Record<Locale, FormCopy> = {
     title: "«Размышления» в письмах",
     description:
       "Раз в неделю — пассаж и короткий разбор. Без рекламы, отписаться можно в один клик.",
-    placeholder: "вашa@почта.ru",
+    placeholder: "ваша@почта.ru",
     button: "Подписаться",
     buttonLoading: "Отправляем...",
     success: "Почти готово! Проверьте почту и подтвердите подписку.",
@@ -44,15 +47,24 @@ const COPY: Record<Locale, FormCopy> = {
   },
 };
 
-const { locale } = Astro.props;
+const { locale, minimal = false } = Astro.props;
 const t = COPY[locale];
 const inputId = `subscribe-email-${locale}`;
 const statusId = `subscribe-status-${locale}`;
+const titleId = `subscribe-title-${locale}`;
 ---
-<section class="subscribe" aria-labelledby={`subscribe-title-${locale}`}>
+<section
+  class:list={["subscribe", { "subscribe--minimal": minimal }]}
+  aria-labelledby={minimal ? undefined : titleId}
+  aria-label={minimal ? t.title : undefined}
+>
   <div class="subscribe-inner">
-    <h2 id={`subscribe-title-${locale}`} class="subscribe-title">{t.title}</h2>
-    <p class="subscribe-desc">{t.description}</p>
+    {!minimal && (
+      <>
+        <h2 id={titleId} class="subscribe-title">{t.title}</h2>
+        <p class="subscribe-desc">{t.description}</p>
+      </>
+    )}
     <form
       class="subscribe-form"
       data-subscribe-form

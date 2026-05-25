@@ -1514,11 +1514,293 @@ mark.hl-match {
   margin: 14px 0 0;
 }
 
+/* Minimal variant — used on the newsletter landing where the surrounding
+   section already provides heading + description, so the form drops its own
+   title/desc and tightens its padding accordingly. */
+.subscribe--minimal {
+  margin: 0;
+  padding: 28px 32px 24px;
+}
+
 @media (max-width: 600px) {
   .subscribe { padding: 30px 22px 26px; }
+  .subscribe--minimal { padding: 22px 18px 20px; }
   .subscribe-title { font-size: 22px; }
   .subscribe-form { flex-direction: column; gap: 10px; }
   .subscribe-button { padding: 13px 22px; }
 }
 
+/* ------------------------------------------------------------------
+   PASSAGE-BOTTOM SUBSCRIBE BLOCK
+   Compact newsletter CTA appended below the passage text + nav.
+   Uses .subscribe--minimal for the form itself; this just sets up the
+   surrounding heading, sub-text, and "more about the newsletter" link.
+------------------------------------------------------------------ */
+.passage-sub {
+  border-top: 1px solid var(--rule);
+  margin: 56px 0 0;
+  padding: 48px 28px 8px;
+  display: block;
+}
+.passage-sub-inner {
+  max-width: 520px;
+  margin: 0 auto;
+}
+.passage-sub-head {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  color: var(--text);
+  margin: 0 0 8px;
+  text-wrap: balance;
+}
+.passage-sub-text {
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-soft);
+  margin: 0 0 18px;
+  text-wrap: pretty;
+}
+.passage-sub .subscribe { box-shadow: none; }
+.passage-sub-more {
+  display: inline-block;
+  margin-top: 14px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ochre-deep);
+  border-bottom: 1px solid color-mix(in oklch, var(--ochre-deep) 50%, transparent);
+  padding-bottom: 1px;
+  transition: border-color .15s, color .15s;
+}
+.passage-sub-more:hover {
+  color: var(--text);
+  border-bottom-color: var(--ochre);
+}
 
+@media (max-width: 700px) {
+  .passage-sub { padding: 36px 18px 4px; margin-top: 40px; }
+  .passage-sub-head { font-size: 21px; }
+  .passage-sub-text { font-size: 15.5px; }
+}
+
+/* ------------------------------------------------------------------
+   NEWSLETTER LANDING
+------------------------------------------------------------------ */
+.nl-wrap {
+  max-width: 720px;
+  padding-top: 40px;
+}
+.nl-crumbs { margin-bottom: 40px; }
+
+.nl-hero { margin-bottom: 56px; }
+.nl-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  margin-bottom: 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.nl-eyebrow::before {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background: var(--rule-strong);
+  flex-shrink: 0;
+}
+.nl-title {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(40px, 6vw, 64px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  margin: 0 0 24px;
+  color: var(--text);
+  text-wrap: balance;
+}
+.nl-title em {
+  font-style: italic;
+  color: var(--ochre-deep);
+}
+.nl-sub {
+  font-family: var(--serif);
+  font-size: 20px;
+  line-height: 1.55;
+  color: var(--text-soft);
+  max-width: 36rem;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.nl-rule { margin: 56px 0; }
+.nl-section { margin: 0; }
+.nl-section-h {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 28px;
+  letter-spacing: -0.005em;
+  margin: 0 0 28px;
+  color: var(--text);
+}
+
+.nl-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.nl-list-item {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 18px;
+  align-items: baseline;
+}
+.nl-list-bullet {
+  font-family: var(--serif);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ochre-deep);
+  text-align: right;
+  padding-top: 4px;
+  user-select: none;
+}
+.nl-list-text {
+  font-family: var(--serif);
+  font-size: 17.5px;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.nl-sample {
+  position: relative;
+  padding: 32px 36px 28px;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+.nl-sample::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ochre) 0%, transparent 70%);
+}
+.nl-sample-tag { margin-bottom: 14px; }
+.nl-sample-tag .mono {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ochre-deep);
+}
+.nl-sample-ref {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--text-mute);
+  margin-bottom: 16px;
+}
+.nl-sample-text {
+  font-family: var(--serif);
+  font-size: 18.5px;
+  line-height: 1.7;
+  color: var(--text);
+  margin: 0;
+  text-wrap: pretty;
+}
+.nl-sample-text .dropcap {
+  float: left;
+  font-size: 56px;
+  line-height: 0.9;
+  padding: 6px 10px 0 0;
+  font-style: italic;
+  color: var(--ochre-deep);
+  font-weight: 500;
+}
+
+.nl-author-card {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 40px;
+  align-items: start;
+  padding: 8px 0;
+}
+.nl-author-meta { padding-top: 4px; }
+.nl-author-name {
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.nl-author-name em {
+  font-style: italic;
+  color: var(--ochre-deep);
+}
+.nl-author-role {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+.nl-author-text {
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text);
+  text-wrap: pretty;
+}
+.nl-author-text p {
+  margin: 0 0 14px;
+}
+.nl-author-text p:last-child {
+  margin-bottom: 0;
+}
+
+.nl-final { text-align: left; }
+.nl-final-h {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.012em;
+  margin: 0 0 16px;
+  color: var(--text);
+  text-wrap: balance;
+}
+.nl-final-h em {
+  font-style: italic;
+  color: var(--ochre-deep);
+}
+.nl-final-sub {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 18px;
+  color: var(--text-soft);
+  margin: 0 0 8px;
+  max-width: 30rem;
+}
+
+@media (max-width: 700px) {
+  .nl-wrap { padding-top: 24px; }
+  .nl-rule { margin: 44px 0; }
+  .nl-sample { padding: 24px 22px; }
+  .nl-sample-text { font-size: 17px; }
+  .nl-sample-text .dropcap { font-size: 46px; }
+  .nl-list-item { grid-template-columns: 24px 1fr; gap: 12px; }
+  .nl-list-bullet { font-size: 18px; }
+  .nl-list-text { font-size: 16.5px; }
+  .nl-author-card { grid-template-columns: 1fr; gap: 16px; }
+  .nl-author-meta { padding-top: 0; }
+  .nl-final-sub { font-size: 16.5px; }
+}

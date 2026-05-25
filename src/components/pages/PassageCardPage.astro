@@ -14,6 +14,7 @@
  */
 import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
+import PassageSubscribe from '../PassageSubscribe.astro';
 import type { Lang } from '../../lib/ui';
 import { romanize } from '../../lib/ui';
 import type { PassageCard, PTBlock, RefSummary, EntityType } from '../../lib/sanity';
@@ -701,6 +702,8 @@ const popoverI18n = {
     </div>{/* end .acad-m-shell */}
 
     </div>{/* end data-acad-passage common parent */}
+
+    <PassageSubscribe lang={lang} />
 
     {/* ─── XREF POPOVER (one instance reused across all xrefs) ─── */}
     <div id="acad-xref-popover" class="xref-pop" hidden>

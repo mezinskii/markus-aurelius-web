@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
 import PassageTools from '../PassageTools';
+import PassageSubscribe from '../PassageSubscribe.astro';
 import { getMeditationsBook, type MeditationPassage } from '../../lib/sanity';
 import { BOOK_META, romanize, UI, type Lang } from '../../lib/ui';
 import { renderWithFootnotes } from '../../lib/footnotes';
@@ -191,6 +192,8 @@ const jsonLd = [
         </div>
       </aside>
     </div>
+
+    <PassageSubscribe lang={lang} />
   </Shell>
 </Layout>
 

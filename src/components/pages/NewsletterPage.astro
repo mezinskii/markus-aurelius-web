@@ -1,0 +1,206 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../Shell';
+import SubscribeForm from '../SubscribeForm.astro';
+import { UI, type Lang } from '../../lib/ui';
+import {
+  authorPerson,
+  marcusAureliusPerson,
+  publisherJsonLd,
+  articleJsonLd,
+  breadcrumbsJsonLd,
+  pageUrl,
+} from '../../lib/seo';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+const t = UI[lang];
+
+const langPrefix = lang === 'ru' ? '/ru' : '';
+const pathname = `${langPrefix}/newsletter`;
+
+interface NLCopy {
+  title: string;
+  description: string;
+  navLabel: string;
+  eyebrow: string;
+  h1Lead: string;
+  h1Em: string;
+  sub: string;
+  listHead: string;
+  list: string[];
+  sampleHead: string;
+  sampleEyebrow: string;
+  sampleRef: string;
+  sampleText: string;
+  authorHead: string;
+  authorName: string;
+  authorRole: string;
+  authorText: string[];
+  finalEyebrow: string;
+  finalHeadLead: string;
+  finalHeadEm: string;
+  finalHeadTail: string;
+  finalSub: string;
+}
+
+const COPY: Record<Lang, NLCopy> = {
+  en: {
+    title: 'Marcus Aurelius Newsletter — The Meditations, one letter at a time | readaurelius.org',
+    description:
+      "A weekly newsletter on Marcus Aurelius's Meditations: one passage with commentary on the Stoic terms, disciplines and doctrines behind it. Free, no ads.",
+    navLabel: 'Newsletter',
+    eyebrow: 'Newsletter · Free · Weekly',
+    h1Lead: 'The Meditations,',
+    h1Em: 'one letter at a time',
+    sub:
+      'Once a week — one passage of Marcus Aurelius with commentary. Slow, careful reading through the context of Stoic philosophy.',
+    listHead: "What's in the letters",
+    list: [
+      'One passage of the Meditations each week, with commentary — usually a 5-minute read.',
+      'Stoic terms, disciplines and doctrines, explained in plain language.',
+      'Context: how to read Marcus Aurelius and grasp the heart of his spiritual exercises.',
+      'No ads, no spam. Unsubscribe in one click.',
+    ],
+    sampleHead: 'What a commentary looks like',
+    sampleEyebrow: 'Example · Book II',
+    sampleRef: 'Meditations · II · praemeditatio malorum',
+    sampleText:
+      "We read each passage not as a set of aphorisms, but as a spiritual exercise. Book II, for instance, opens with Marcus addressing himself — he lists the difficult people he will meet during the day and prepares himself in advance. This is praemeditatio malorum, the “premeditation of adversity” — a Stoic practice going back to the early Stoa. Behind a simple text lies a precise technique for working with one's own reactions.",
+    authorHead: 'Who writes this',
+    authorName: 'Ian Mezinskii',
+    authorRole: 'readaurelius.org',
+    authorText: [
+      "I research the texts of Marcus Aurelius and run readaurelius.org, where I'm working on a full commented reading of the Meditations — passage by passage, connecting each to the Stoic disciplines, doctrines and terms behind it. This newsletter is part of the same work.",
+    ],
+    finalEyebrow: 'One letter a week · Begin now',
+    finalHeadLead: 'Start reading ',
+    finalHeadEm: 'Marcus',
+    finalHeadTail: ' with me',
+    finalSub: 'The first letter will arrive within a few days.',
+  },
+  ru: {
+    title: 'Рассылка о Марке Аврелии — «Размышления» в письмах | readaurelius.org',
+    description:
+      'Еженедельная рассылка о «Размышлениях» Марка Аврелия: один фрагмент с разбором стоических терминов, дисциплин и догматов. Бесплатно, без рекламы.',
+    navLabel: 'Рассылка',
+    eyebrow: 'Рассылка · Бесплатно · Раз в неделю',
+    h1Lead: '«Размышления»',
+    h1Em: 'в письмах',
+    sub:
+      'Раз в неделю — один фрагмент Марка Аврелия с разбором. Медленное, вдумчивое чтение через контекст стоической философии.',
+    listHead: 'Что в письмах',
+    list: [
+      'Один фрагмент «Размышлений» в неделю с комментарием — обычно 5 минут чтения.',
+      'Стоические термины, дисциплины и догматы — разобранные понятным языком.',
+      'Контекст: как читать Марка Аврелия так, чтобы понять суть духовных упражнений.',
+      'Без рекламы и без спама. Отписаться можно в один клик.',
+    ],
+    sampleHead: 'Как выглядит разбор',
+    sampleEyebrow: 'Пример · Книга II',
+    sampleRef: 'Размышления · II · praemeditatio malorum',
+    sampleText:
+      'Каждый фрагмент мы разбираем не как набор афоризмов, а как духовное упражнение. Например, Книга II открывается обращением к самому себе — Марк перечисляет трудных людей, с которыми столкнётся за день, и заранее настраивает себя. Это praemeditatio malorum, «предварительное обдумывание» — стоическая практика, восходящая к ранней Стое. За простым текстом стоит точная техника работы с собственными реакциями.',
+    authorHead: 'Кто ведёт рассылку',
+    authorName: 'Ян Мезинский',
+    authorRole: 'readaurelius.org',
+    authorText: [
+      'Я занимаюсь исследованием текстов Марка Аврелия и веду проект readaurelius.org. Сейчас работаю над полным комментированным разбором «Размышлений» — фрагмент за фрагментом, с привязкой каждого к стоическим дисциплинам, догматам и терминам. Эта рассылка — часть той же работы.',
+    ],
+    finalEyebrow: 'Одно письмо в неделю · Начните сейчас',
+    finalHeadLead: 'Начните читать ',
+    finalHeadEm: 'Марка',
+    finalHeadTail: ' вместе со мной',
+    finalSub: 'Первое письмо придёт в ближайшие дни.',
+  },
+};
+
+const c = COPY[lang];
+const url = pageUrl(lang, '/newsletter');
+
+const jsonLd = [
+  marcusAureliusPerson(),
+  authorPerson(),
+  publisherJsonLd(),
+  articleJsonLd({ url, headline: c.title, description: c.description, lang }),
+  breadcrumbsJsonLd([
+    { name: lang === 'ru' ? 'Главная' : 'Home', url: pageUrl(lang, '/') },
+    { name: c.navLabel, url },
+  ]),
+];
+---
+<Layout title={c.title} description={c.description} lang={lang} basePath="/newsletter" jsonLd={jsonLd}>
+  <Shell route="newsletter" lang={lang} pathname={pathname} client:load>
+    <main class="wrap nl-wrap">
+      <div class="crumbs nl-crumbs">
+        <a href={langPrefix || '/'}>{t.read}</a>
+        <span class="sep">/</span>
+        <span>{c.navLabel}</span>
+      </div>
+
+      <header class="nl-hero">
+        <div class="nl-eyebrow">{c.eyebrow}</div>
+        <h1 class="nl-title" set:html={`${c.h1Lead}<br /><em>${c.h1Em}</em>`} />
+        <p class="nl-sub">{c.sub}</p>
+      </header>
+
+      <hr class="rule nl-rule" />
+
+      <section class="nl-section">
+        <h2 class="nl-section-h">{c.listHead}</h2>
+        <ul class="nl-list">
+          {c.list.map(line => (
+            <li class="nl-list-item">
+              <span class="nl-list-bullet" aria-hidden="true">—</span>
+              <p class="nl-list-text">{line}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <!-- <hr class="rule nl-rule" /> -->
+
+      <!-- <SubscribeForm locale={lang} minimal />
+
+      <hr class="rule nl-rule" /> -->
+
+      <!-- <section class="nl-section">
+        <h2 class="nl-section-h">{c.sampleHead}</h2>
+        <article class="nl-sample">
+          <div class="nl-sample-tag"><span class="mono">{c.sampleEyebrow}</span></div>
+          <div class="nl-sample-ref">{c.sampleRef}</div>
+          <p class="nl-sample-text">
+            <span class="dropcap">{c.sampleText.slice(0, 1)}</span>{c.sampleText.slice(1)}
+          </p>
+        </article>
+      </section> -->
+
+      <hr class="rule nl-rule" />
+
+      <section class="nl-section">
+        <h2 class="nl-section-h">{c.authorHead}</h2>
+        <div class="nl-author-card">
+          <div class="nl-author-meta">
+            <div class="nl-author-name"><em>{c.authorName}</em></div>
+            <div class="nl-author-role">{c.authorRole}</div>
+          </div>
+          <div class="nl-author-text">
+            {c.authorText.map(p => <p>{p}</p>)}
+          </div>
+        </div>
+      </section>
+
+      <hr class="rule nl-rule" />
+
+      <section class="nl-section nl-final">
+        <div class="nl-eyebrow">{c.finalEyebrow}</div>
+        <h2
+          class="nl-final-h"
+          set:html={`${c.finalHeadLead}<em>${c.finalHeadEm}</em>${c.finalHeadTail}`}
+        />
+        <p class="nl-final-sub">{c.finalSub}</p>
+        <SubscribeForm locale={lang} minimal />
+      </section>
+    </main>
+  </Shell>
+</Layout>

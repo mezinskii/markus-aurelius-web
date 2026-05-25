@@ -1,0 +1,32 @@
+---
+import SubscribeForm from './SubscribeForm.astro';
+import type { Lang } from '../lib/ui';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+
+const COPY = {
+  en: {
+    head: 'Reading Marcus, one passage a week',
+    sub: 'Get a new passage with commentary every week — slow, careful reading of the Meditations.',
+    more: 'More about the newsletter →',
+    href: '/newsletter',
+  },
+  ru: {
+    head: 'Чтение Марка — один фрагмент в неделю',
+    sub: 'Каждую неделю — новый фрагмент с разбором. Медленное, вдумчивое чтение «Размышлений».',
+    more: 'Подробнее о рассылке →',
+    href: '/ru/newsletter',
+  },
+} as const;
+
+const c = COPY[lang];
+---
+<aside class="passage-sub" aria-label={c.head}>
+  <div class="passage-sub-inner">
+    <h2 class="passage-sub-head">{c.head}</h2>
+    <p class="passage-sub-text">{c.sub}</p>
+    <SubscribeForm locale={lang} minimal />
+    <a class="passage-sub-more" href={c.href}>{c.more}</a>
+  </div>
+</aside>
