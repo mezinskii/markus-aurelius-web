@@ -1,7 +1,8 @@
 export type Lang = 'en' | 'ru';
 
 export const BOOK_META = [
-  { n: 1,  count: 17, note: { en: 'Written among the Quadi, on the Granua.', ru: 'Написано среди квадов, у реки Грануи.' },
+  { n: 1,  count: 17, enhanced: true,
+    note: { en: 'Written among the Quadi, on the Granua.', ru: 'Написано среди квадов, у реки Грануи.' },
     themes: { en: 'gratitude, teachers, family, formative virtues, debts owed', ru: 'благодарность, учителя, родные, добродетели, долги' },
     quote: { en: 'From my grandfather Verus I learned good morals and the government of my temper.', ru: 'От деда Вера — добрый нрав и владение собой.' } },
   { n: 2,  count: 17, enhanced: true,
