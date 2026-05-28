@@ -34,7 +34,7 @@ const jsonLd = [
 ];
 ---
 <Layout title={title} description={description} lang={lang} basePath="/about" jsonLd={jsonLd}>
-  <Shell route="about" lang={lang} pathname={pathname} client:load>
+  <Shell route="about" lang={lang} pathname={pathname} client:idle>
     <main class="wrap">
       <div class="crumbs">
         <a href={langPrefix || '/'}>{t.read}</a>

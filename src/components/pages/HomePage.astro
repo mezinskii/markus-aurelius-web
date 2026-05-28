@@ -35,7 +35,7 @@ const jsonLd = [
 ];
 ---
 <Layout title={title} description={description} lang={lang} basePath="/" jsonLd={jsonLd}>
-  <Shell route="home" lang={lang} pathname={pathname} client:load>
+  <Shell route="home" lang={lang} pathname={pathname} client:idle>
     <main class="wrap">
       <section class="home-hero">
         <div>
@@ -52,7 +52,7 @@ const jsonLd = [
           </div>
         </div>
 
-        <RandomPassage passages={passagesData} lang={lang} client:load />
+        <RandomPassage passages={passagesData} lang={lang} client:idle />
       </section>
 
       <section>

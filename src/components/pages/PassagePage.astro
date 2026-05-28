@@ -89,7 +89,7 @@ const jsonLd = [
 ];
 ---
 <Layout title={title} description={description} lang={lang} basePath={`/passage/${bookNum}/${section}`} jsonLd={jsonLd}>
-  <Shell route="passage" lang={lang} pathname={pathname} client:load>
+  <Shell route="passage" lang={lang} pathname={pathname} client:idle>
     <div class="passage-screen">
 
       <aside class="passage-side left">
@@ -145,7 +145,7 @@ const jsonLd = [
           text={passage.text}
           passageId={passage.passageId}
           lang={lang}
-          client:load
+          client:idle
         />
 
         <div class="passage-nav">

@@ -130,7 +130,7 @@ const jsonLd = [
 ];
 ---
 <Layout title={c.title} description={c.description} lang={lang} basePath="/newsletter" jsonLd={jsonLd}>
-  <Shell route="newsletter" lang={lang} pathname={pathname} client:load>
+  <Shell route="newsletter" lang={lang} pathname={pathname} client:idle>
     <main class="wrap nl-wrap">
       <div class="crumbs nl-crumbs">
         <a href={langPrefix || '/'}>{t.read}</a>

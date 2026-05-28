@@ -38,7 +38,7 @@ const jsonLd = [
 ];
 ---
 <Layout title={title} description={description} lang={lang} basePath="/sayings" jsonLd={jsonLd}>
-  <Shell route="sayings" lang={lang} pathname={pathname} client:load>
+  <Shell route="sayings" lang={lang} pathname={pathname} client:idle>
     <main class="wrap">
 
       <div class="crumbs">

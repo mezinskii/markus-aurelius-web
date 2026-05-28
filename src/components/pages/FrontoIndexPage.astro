@@ -38,7 +38,7 @@ const jsonLd = [
 ];
 ---
 <Layout title={title} description={description} lang={lang} basePath="/fronto" jsonLd={jsonLd}>
-  <Shell route="fronto" lang={lang} pathname={pathname} client:load>
+  <Shell route="fronto" lang={lang} pathname={pathname} client:idle>
     <main class="wrap">
       <div class="crumbs">
         <a href={langPrefix || '/'}>{t.read}</a>

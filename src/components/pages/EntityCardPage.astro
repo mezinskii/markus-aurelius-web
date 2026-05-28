@@ -184,7 +184,7 @@ const showDisciplineChip = entity._type === 'exercise' && entity.display.discipl
   extraStylesheets={['/academic.css']}
   jsonLd={jsonLd}
 >
-  <Shell route="passage" lang={lang} pathname={pathname} client:load>
+  <Shell route="passage" lang={lang} pathname={pathname} client:idle>
     <div data-acad-entity data-entity-type={entity._type} data-entity-slug={entity.slug}>
     <div class="ent-shell">
       {/* ─── HEAD ─── */}

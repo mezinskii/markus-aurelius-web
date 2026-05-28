@@ -232,7 +232,7 @@ const popoverI18n = {
   extraStylesheets={['/academic.css']}
   jsonLd={jsonLd}
 >
-  <Shell route="passage" lang={lang} pathname={pathname} client:load>
+  <Shell route="passage" lang={lang} pathname={pathname} client:idle>
     <div
       data-acad-passage
       data-book={card.book}

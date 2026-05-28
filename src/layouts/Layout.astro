@@ -1,4 +1,6 @@
 ---
+import { Font } from "astro:assets";
+
 export interface Props {
   title?: string;
   description?: string;
@@ -102,12 +104,9 @@ const ogImageUrl = ogImage ?? ogForRoute(stripped, lang);
       <script is:inline type="application/ld+json" set:html={JSON.stringify(obj)} />
     ))}
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
+    <Font cssVariable="--font-serif" preload={[{ weight: 400, style: "normal", subset: lang === "ru" ? "cyrillic" : "latin" }]} />
+    <Font cssVariable="--font-sans" />
+    <Font cssVariable="--font-mono" />
     <link rel="stylesheet" href="/styles.css" />
     {extraStylesheets.map(href => <link rel="stylesheet" href={href} />)}
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />

@@ -65,7 +65,7 @@ const jsonLd = [
 ];
 ---
 <Layout title={title} description={description} lang={lang} basePath={`/fronto/${letterNum}`} jsonLd={jsonLd}>
-  <Shell route="letter" lang={lang} pathname={pathname} client:load>
+  <Shell route="letter" lang={lang} pathname={pathname} client:idle>
     <div class="passage-screen">
 
       <aside class="passage-side left">
@@ -160,7 +160,7 @@ const jsonLd = [
           text={fullText}
           passageId={`fronto:${letterNum}`}
           lang={lang}
-          client:load
+          client:idle
         />
 
         <div class="passage-nav">
