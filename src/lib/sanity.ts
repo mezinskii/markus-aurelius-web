@@ -87,7 +87,9 @@ export async function getMeditationsPassage(
 
 // ─── Fronto queries ────────────────────────────────────────────────────────────
 
-export async function getFrontoLettersIndex(): Promise<FrontoLetterIndex[]> {
+export async function getFrontoLettersIndex(
+  lang: 'en' | 'ru' = 'en',
+): Promise<FrontoLetterIndex[]> {
   const rows = await client.fetch<Array<{
     letter: number;
     section: string;
@@ -95,14 +97,15 @@ export async function getFrontoLettersIndex(): Promise<FrontoLetterIndex[]> {
     sender: string;
     addressee: string | null;
   }>>(
-    `*[_type=="passage" && work._ref=="work.fronto-correspondence"]
+    `*[_type=="passage" && work._ref=="work.fronto-correspondence" && language==$lang]
      {
        letter,
        section,
        text,
-       "sender": author->name.en,
-       "addressee": addressee->name.en
+       "sender": coalesce(author->name[$lang], author->name.en),
+       "addressee": coalesce(addressee->name[$lang], addressee->name.en)
      }`,
+    { lang },
   );
 
   const byLetter = new Map<number, typeof rows>();
@@ -131,18 +134,22 @@ export async function getFrontoLettersIndex(): Promise<FrontoLetterIndex[]> {
   return result;
 }
 
-export async function getFrontoLetter(letter: number): Promise<FrontoPassage[]> {
-  return client.fetch<FrontoPassage[]>(
-    `*[_type=="passage" && work._ref=="work.fronto-correspondence" && letter==$letter]
-     | order(section asc)
+export async function getFrontoLetter(
+  letter: number,
+  lang: 'en' | 'ru' = 'en',
+): Promise<FrontoPassage[]> {
+  const rows = await client.fetch<FrontoPassage[]>(
+    `*[_type=="passage" && work._ref=="work.fronto-correspondence" && letter==$letter && language==$lang]
      {
        _id, passageId, letter, section, order, text, language, translator,
        "author": author->{_id, name},
        "addressee": addressee->{_id, name},
        footnotes
      }`,
-    { letter },
+    { letter, lang },
   );
+  // section is stored as a string; sort numerically so "10" follows "9", not "1".
+  return rows.sort((a, b) => parseInt(a.section, 10) - parseInt(b.section, 10));
 }
 
 // ─── Sayings queries ───────────────────────────────────────────────────────────
@@ -168,10 +175,13 @@ export async function getAllSayings(lang: 'en' | 'ru' = 'en'): Promise<Saying[]>
   );
 }
 
-export async function getFrontoLetterNumbers(): Promise<number[]> {
+export async function getFrontoLetterNumbers(
+  lang: 'en' | 'ru' = 'en',
+): Promise<number[]> {
   const rows = await client.fetch<Array<{ letter: number }>>(
-    `*[_type=="passage" && work._ref=="work.fronto-correspondence"]
+    `*[_type=="passage" && work._ref=="work.fronto-correspondence" && language==$lang]
      | order(letter asc) { letter }`,
+    { lang },
   );
   const seen = new Set<number>();
   const result: number[] = [];

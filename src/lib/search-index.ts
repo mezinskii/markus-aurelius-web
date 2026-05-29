@@ -32,19 +32,20 @@ export async function buildSearchIndex(lang: Lang): Promise<IndexEntry[]> {
     { translator },
   );
 
-  // Fronto is only available in English (Haines, 1919); the RU page shows the same
-  // English text wrapped in Russian UI. Index it under both languages so users can
-  // navigate to it from either side of the site.
+  // Fronto correspondence (Haines, 1919) is now available in both English and a
+  // Russian translation; index the passages for the current locale only, with
+  // sender/addressee names resolved to that locale.
   const fronto = await client.fetch<Array<{
     letter: number; section: string; text: string;
     sender: string; addressee: string | null;
   }>>(
-    `*[_type=="passage" && work._ref=="work.fronto-correspondence"]
+    `*[_type=="passage" && work._ref=="work.fronto-correspondence" && language==$lang]
      | order(letter asc, section asc) {
        letter, section, text,
-       "sender": author->name.en,
-       "addressee": addressee->name.en
+       "sender": coalesce(author->name[$lang], author->name.en),
+       "addressee": coalesce(addressee->name[$lang], addressee->name.en)
      }`,
+    { lang },
   );
 
   const sayings = await client.fetch<Array<{

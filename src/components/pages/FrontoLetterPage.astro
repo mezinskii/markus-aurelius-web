@@ -21,9 +21,9 @@ const langPrefix = lang === 'ru' ? '/ru' : '';
 const pathname = `${langPrefix}/fronto/${letterNum}`;
 
 const first = sections[0]!;
-const sender = first.author.name.en;
-const addressee = first.addressee?.name.en ?? null;
-const isFromFronto = sender.includes('Fronto');
+const sender = first.author.name[lang] ?? first.author.name.en;
+const addressee = first.addressee ? (first.addressee.name[lang] ?? first.addressee.name.en) : null;
+const isFromFronto = first.author._id === 'author.fronto';
 
 function parseSections(text: string) {
   return text.split(/\n\n+/).filter(Boolean);
@@ -43,12 +43,20 @@ function makeIncipit(s: string, max: number): string {
 const incipitForTitle = makeIncipit(cleanedFirst, 55);
 
 const roman = romanize(letterNum);
-const senderShort = isFromFronto ? 'Fronto' : 'Marcus Aurelius';
-const addresseeShort = addressee ? (addressee.includes('Fronto') ? 'Fronto' : 'Marcus Aurelius') : 'Fronto';
+const frontoShort = lang === 'ru' ? 'Фронтон' : 'Fronto';
+const marcusShort = lang === 'ru' ? 'Марк Аврелий' : 'Marcus Aurelius';
+function shortName(ref: { _id: string; name: Record<string, string> } | null): string {
+  if (!ref) return frontoShort;
+  if (ref._id === 'author.fronto') return frontoShort;
+  if (ref._id === 'author.marcus-aurelius') return marcusShort;
+  return ref.name[lang] ?? ref.name.en;
+}
+const senderShort = shortName(first.author);
+const addresseeShort = shortName(first.addressee ?? null);
 const title = lang === 'ru'
   ? `Письмо ${roman}: ${senderShort} → ${addresseeShort}: «${incipitForTitle}…»`
   : `Letter ${roman}: ${senderShort} to ${addresseeShort}: "${incipitForTitle}…"`;
-const description = `${sender} → ${addressee ?? 'Fronto'}. ${cleanedFirst.slice(0, 140)}${cleanedFirst.length > 140 ? '…' : ''}`;
+const description = `${sender} → ${addressee ?? frontoShort}. ${cleanedFirst.slice(0, 140)}${cleanedFirst.length > 140 ? '…' : ''}`;
 
 const url = pageUrl(lang, `/fronto/${letterNum}`);
 const jsonLd = [

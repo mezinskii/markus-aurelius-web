@@ -3,18 +3,18 @@ import FrontoLetterPage from '../../../components/pages/FrontoLetterPage.astro';
 import { getFrontoLetter, getFrontoLetterNumbers } from '../../../lib/sanity';
 
 export async function getStaticPaths() {
-  const numbers = await getFrontoLetterNumbers();
+  const numbers = await getFrontoLetterNumbers('ru');
   return numbers.map(n => ({ params: { letter: String(n) } }));
 }
 
 const letterNum = parseInt(Astro.params.letter as string, 10);
-const sections = await getFrontoLetter(letterNum);
+const sections = await getFrontoLetter(letterNum, 'ru');
 
 if (!sections.length) {
   return Astro.redirect('/ru/fronto');
 }
 
-const allNums = await getFrontoLetterNumbers();
+const allNums = await getFrontoLetterNumbers('ru');
 const idx = allNums.indexOf(letterNum);
 const prevLetter = idx > 0 ? allNums[idx - 1] : null;
 const nextLetter = idx < allNums.length - 1 ? allNums[idx + 1] : null;

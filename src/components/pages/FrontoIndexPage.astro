@@ -9,7 +9,7 @@ interface Props { lang: Lang; }
 const { lang } = Astro.props;
 const t = UI[lang];
 
-const letters = await getFrontoLettersIndex();
+const letters = await getFrontoLettersIndex(lang);
 const langPrefix = lang === 'ru' ? '/ru' : '';
 const pathname = `${langPrefix}/fronto`;
 
@@ -61,7 +61,7 @@ const jsonLd = [
           </h1>
           <p class="book-head-note">
             {lang === 'ru'
-              ? `${letters.length} писем и фрагментов из переписки Марка Аврелия с его учителем риторики Марком Корнелием Фронтоном (138–166 гг.) — тёплые, учёные, порой игривые. Перевод К. Р. Хайнса (Loeb Classical Library, 1919). Русского перевода пока нет — тексты ниже на английском.`
+              ? `${letters.length} писем и фрагментов из переписки Марка Аврелия с его учителем риторики Марком Корнелием Фронтоном (138–166 гг.) — тёплые, учёные, порой игривые. Русский перевод с английского издания К. Р. Хайнса (Loeb Classical Library, 1919).`
               : `${letters.length} letters and fragments from the correspondence of Marcus Aurelius with his rhetoric teacher Marcus Cornelius Fronto (138–166 CE) — warm, learned, sometimes playful. C. R. Haines translation (Loeb Classical Library, 1919).`}
           </p>
         </div>
