@@ -55,6 +55,7 @@ function ogForRoute(p: string, l: "en" | "ru"): string {
     else if (s === "/contents") slug = "contents";
     else if (s === "/about") slug = "about";
     else if (s === "/sayings") slug = "sayings";
+    else if (s === "/people") slug = "people";
     else if (s === "/fronto" || s.startsWith("/fronto/")) slug = "fronto";
   }
   return `${SITE_ORIGIN}/og/${slug}${suf}.png`;

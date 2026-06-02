@@ -3,7 +3,7 @@ import { UI, type Lang } from '../lib/ui';
 import { search, buildHighlightedUrl, type IndexEntry, type SearchHit } from '../lib/search';
 
 interface Props {
-  route: 'home' | 'contents' | 'about' | 'fronto' | 'book' | 'passage' | 'letter' | 'sayings' | 'newsletter';
+  route: 'home' | 'contents' | 'about' | 'fronto' | 'book' | 'passage' | 'letter' | 'sayings' | 'newsletter' | 'people' | 'person';
   /** Language is determined by URL: /ru/* is RU, everything else is EN. */
   lang: Lang;
   /** Current page path passed in from the server, e.g. "/book/3" or "/ru/book/3". */
@@ -126,6 +126,7 @@ export default function Shell({ route, lang, pathname, children }: Props) {
             <a className={route === 'home' || route === 'book' || route === 'passage' ? 'active' : ''} href={lang === 'ru' ? '/ru' : '/'}>{t.read}</a>
             <a className={route === 'contents' ? 'active' : ''} href={lang === 'ru' ? '/ru/contents' : '/contents'}>{t.contents}</a>
             <a className={route === 'fronto' || route === 'letter' ? 'active' : ''} href={lang === 'ru' ? '/ru/fronto' : '/fronto'}>{t.fronto}</a>
+            <a className={route === 'people' || route === 'person' ? 'active' : ''} href={lang === 'ru' ? '/ru/people' : '/people'}>{t.people}</a>
             <a className={route === 'sayings' ? 'active' : ''} href={lang === 'ru' ? '/ru/sayings' : '/sayings'}>{t.sayings}</a>
             <a className={route === 'newsletter' ? 'active' : ''} href={lang === 'ru' ? '/ru/newsletter' : '/newsletter'}>{t.newsletter}</a>
             <a className={route === 'about' ? 'active' : ''} href={lang === 'ru' ? '/ru/about' : '/about'}>{t.about}</a>

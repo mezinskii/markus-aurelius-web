@@ -24,6 +24,7 @@ export function ogImageForPath(basePath: string, lang: Lang): string {
   if (stripped === '/contents') slug = 'contents';
   else if (stripped === '/about') slug = 'about';
   else if (stripped === '/sayings') slug = 'sayings';
+  else if (stripped === '/people') slug = 'people';
   else if (stripped === '/fronto' || stripped.startsWith('/fronto/')) slug = 'fronto';
   // book/N and passage/B/S fall through to home
   return abs(`/og/${slug}${suffix}.png`);

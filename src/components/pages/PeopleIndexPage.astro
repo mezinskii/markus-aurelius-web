@@ -1,0 +1,435 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Shell from '../Shell';
+import { getAllPeople, type PersonCategory, type PersonHubItem } from '../../lib/sanity';
+import { romanize, type Lang } from '../../lib/ui';
+import {
+  marcusAureliusPerson, authorPerson, publisherJsonLd,
+  articleJsonLd, breadcrumbsJsonLd, pageUrl, abs,
+} from '../../lib/seo';
+
+interface Props { lang: Lang; }
+const { lang } = Astro.props;
+
+const langPrefix = lang === 'ru' ? '/ru' : '';
+const pathname = `${langPrefix}/people`;
+
+const people = await getAllPeople(lang);
+
+// Group by category, preserving the sort order from getAllPeople.
+const ORDER: PersonCategory[] = ['family', 'teachers', 'figures'];
+const groups: Record<PersonCategory, PersonHubItem[]> = { family: [], teachers: [], figures: [] };
+for (const p of people) {
+  if (p.category && groups[p.category]) groups[p.category].push(p);
+}
+
+const CAT = {
+  family: {
+    ru: { h: 'Семья', en: 'familia', sub: 'Родные по крови и усыновлению — те, кому Марк обязан рождением и воспитанием.' },
+    en: { h: 'Family', en: 'familia', sub: 'Relatives by blood and adoption — those Marcus owed his birth and upbringing to.' },
+  },
+  teachers: {
+    ru: { h: 'Учителя и наставники', en: 'praeceptores', sub: 'Те, кто лично учил Марка философии, риторике и грамматике. Ядро Книги I.' },
+    en: { h: 'Teachers & mentors', en: 'praeceptores', sub: 'Those who personally taught Marcus philosophy, rhetoric and grammar. The core of Book I.' },
+  },
+  figures: {
+    ru: { h: 'Философы и современники', en: 'exempla', sub: 'Мыслители, которых Марк приводит в пример, и фигуры его круга — не его учителя.' },
+    en: { h: 'Philosophers & contemporaries', en: 'exempla', sub: 'Thinkers Marcus cites as examples and figures of his orbit — not his teachers.' },
+  },
+} as const;
+
+const COPY = {
+  ru: {
+    crumbHome: 'Читать',
+    crumbHere: 'Люди',
+    eyebrow: 'Размышления · Книга I и далее',
+    title1: 'Люди ',
+    titleEm: 'Марка Аврелия',
+    sub: 'Книга I «Размышлений» — это перечень долгов памяти: Марк по очереди благодарит тех, кто его сформировал. Здесь собраны все, кого он упоминает, — с биографическими справками и ссылками на пассажи, где они появляются.',
+    metaPeople: 'Персоналий',
+    metaSource: 'Источник',
+    metaSourceV: 'Размышления, Книга I',
+    metaLang: 'Языки',
+    metaLangV: 'латынь · греческий',
+    roleLabel: 'роль',
+  },
+  en: {
+    crumbHome: 'Read',
+    crumbHere: 'People',
+    eyebrow: 'Meditations · Book I and beyond',
+    title1: 'The People of ',
+    titleEm: 'Marcus Aurelius',
+    sub: 'Book I of the Meditations is a ledger of remembered debts: Marcus thanks, one by one, those who formed him. Gathered here is everyone he names — with biographical notes and links to the passages where they appear.',
+    metaPeople: 'Persons',
+    metaSource: 'Source',
+    metaSourceV: 'Meditations, Book I',
+    metaLang: 'Languages',
+    metaLangV: 'Latin · Greek',
+    roleLabel: 'role',
+  },
+} as const;
+
+const t = COPY[lang];
+
+/** The visible original-script name that anchors each card. */
+function origName(p: PersonHubItem): string | null {
+  return p.greekForm || p.latinForm || null;
+}
+function origLang(p: PersonHubItem): 'gr' | 'lat' {
+  return p.greekForm ? 'gr' : 'lat';
+}
+
+/** Some name fields carry full titulature in a long parenthetical
+ *  (e.g. "Антонин Пий (Тит Аврелий Фульв …)"). On the card show the common
+ *  name only — but keep short qualifiers like "(младший)" that distinguish
+ *  the grandfather from the father. */
+function cardName(name: string): string {
+  const i = name.indexOf(' (');
+  if (i > 0 && name.length > 34) return name.slice(0, i);
+  return name;
+}
+
+/** The role field carries long prose; show only the first clause on the card. */
+function shortRole(role: string | null): string | null {
+  if (!role) return null;
+  let s = role.split(';')[0];
+  s = s.split(/\s[—–]\s/)[0].trim();
+  if (s.length > 96) s = s.slice(0, 94).trimEnd() + '…';
+  return s;
+}
+
+const total = people.length;
+
+const title = lang === 'ru'
+  ? `Люди Марка Аврелия — семья, учителя и наставники (${total})`
+  : `The People of Marcus Aurelius — family, teachers & mentors (${total})`;
+const description = lang === 'ru'
+  ? `${total} человек, которых Марк Аврелий упоминает в «Размышлениях»: семья, учителя философии и риторики, философы-примеры. Биографические справки и ссылки на пассажи.`
+  : `The ${total} people Marcus Aurelius names in the Meditations: family, teachers of philosophy and rhetoric, and the philosophers he cites. Biographical notes and links to the passages.`;
+
+const url = pageUrl(lang, '/people');
+const jsonLd = [
+  marcusAureliusPerson(),
+  authorPerson(),
+  publisherJsonLd(),
+  articleJsonLd({ url, headline: title, description, lang }),
+  breadcrumbsJsonLd([
+    { name: lang === 'ru' ? 'Главная' : 'Home', url: pageUrl(lang, '/') },
+    { name: t.crumbHere, url },
+  ]),
+  {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: title,
+    numberOfItems: total,
+    itemListElement: people.map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      url: abs(`${langPrefix}/person/${p.slug}`),
+      name: p.name ?? origName(p) ?? p.slug,
+    })),
+  },
+];
+---
+<Layout title={title} description={description} lang={lang} basePath="/people" jsonLd={jsonLd}>
+  <Shell route="people" lang={lang} pathname={pathname} client:idle>
+    <main class="wrap people">
+      <div class="crumbs">
+        <a href={langPrefix || '/'}>{t.crumbHome}</a>
+        <span class="sep">/</span>
+        <span>{t.crumbHere}</span>
+      </div>
+
+      <header class="people-head">
+        <div class="people-eyebrow">{t.eyebrow}</div>
+        <h1 class="people-title">{t.title1}<em>{t.titleEm}</em></h1>
+        <p class="people-sub">{t.sub}</p>
+      </header>
+
+      <div class="people-meta">
+        <div>{t.metaPeople}<strong>{total}</strong></div>
+        <div>{t.metaSource}<strong>{t.metaSourceV}</strong></div>
+        <div>{t.metaLang}<strong>{t.metaLangV}</strong></div>
+      </div>
+
+      {ORDER.map((key, idx) => {
+        const list = groups[key];
+        if (!list.length) return null;
+        const meta = CAT[key][lang];
+        return (
+          <section class="people-section">
+            <div class="people-section-head">
+              <span class="people-num">{romanize(idx + 1)}</span>
+              <div class="people-section-titles">
+                <h2 class="people-section-h">{meta.h}</h2>
+                <span class="people-section-sub">{meta.sub}</span>
+              </div>
+              <span class="people-section-count">{meta.en} · {list.length}</span>
+            </div>
+
+            <ul class="people-grid">
+              {list.map(p => {
+                const orig = origName(p);
+                const role = shortRole(p.role);
+                return (
+                  <li class="person-card">
+                    <a class="person-link" href={`${langPrefix}/person/${p.slug}`}>
+                      <span class="person-name">{p.name ? cardName(p.name) : (orig ?? p.slug)}</span>
+                      {orig && (
+                        <span class="person-orig" lang={origLang(p)}>{orig}</span>
+                      )}
+                      {p.dates && <span class="person-dates">{p.dates}</span>}
+                      {role && <span class="person-role">{role}</span>}
+                      <span class="person-arrow" aria-hidden="true">→</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
+    </main>
+  </Shell>
+</Layout>
+
+<style>
+  .people { padding-bottom: 96px; }
+
+  /* ── Hero ───────────────────────────────────────────── */
+  .people-head { margin-bottom: 40px; }
+  .people-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .people-eyebrow::before {
+    content: '';
+    width: 28px;
+    height: 1px;
+    background: var(--rule-strong);
+  }
+  .people-title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(38px, 6vw, 64px);
+    line-height: 1.04;
+    letter-spacing: -0.018em;
+    margin: 0 0 22px;
+    color: var(--text);
+    text-wrap: balance;
+    max-width: 18ch;
+  }
+  .people-title em { font-style: italic; color: var(--ochre-deep); }
+  .people-sub {
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.62;
+    color: var(--text-soft);
+    max-width: var(--measure);
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  /* ── Meta strip ─────────────────────────────────────── */
+  .people-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 36px;
+    margin: 40px 0 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+  }
+  .people-meta > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+  }
+  .people-meta strong {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 16px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--text);
+  }
+
+  /* ── Section ────────────────────────────────────────── */
+  .people-section { margin-bottom: 56px; }
+  .people-section-head {
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    align-items: baseline;
+    gap: 18px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .people-num {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 30px;
+    color: var(--ochre-deep);
+    line-height: 1;
+  }
+  .people-section-titles { display: flex; flex-direction: column; gap: 6px; }
+  .people-section-h {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 26px;
+    margin: 0;
+    letter-spacing: -0.005em;
+    color: var(--text);
+  }
+  .people-section-sub {
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text-soft);
+    max-width: 52ch;
+    text-wrap: pretty;
+  }
+  .people-section-count {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    white-space: nowrap;
+  }
+
+  /* ── Card grid — thin rules, no fills (Direction A air) ─ */
+  .people-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    border-top: 1px solid var(--rule);
+  }
+  .person-card { position: relative; }
+  .person-card:nth-child(odd) { border-right: 1px solid var(--rule); }
+  .person-link {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'name  arrow'
+      'orig  arrow'
+      'dates arrow'
+      'role  arrow';
+    align-items: start;
+    gap: 2px 16px;
+    padding: 26px 28px 28px;
+    border-bottom: 1px solid var(--rule);
+    text-decoration: none;
+    color: inherit;
+    transition: background .18s;
+  }
+  .person-card:nth-child(odd) .person-link { padding-left: 0; }
+  .person-card:nth-child(even) .person-link { padding-left: 28px; }
+  /* top accent rule, animated on hover (Direction A) */
+  .person-link::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: -1px;
+    height: 1px;
+    background: var(--ochre-deep);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .25s ease;
+    z-index: 1;
+  }
+  .person-link:hover::before { transform: scaleX(1); }
+  .person-link:hover {
+    background: color-mix(in oklch, var(--ochre-wash) 30%, transparent);
+  }
+
+  .person-name {
+    grid-area: name;
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 25px;
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    text-wrap: balance;
+  }
+  .person-orig {
+    grid-area: orig;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+    line-height: 1.2;
+    color: var(--text-mute);
+    letter-spacing: 0.005em;
+    margin-top: 6px;
+    word-break: break-word;
+  }
+  .person-orig[lang='gr'] { font-size: 17px; letter-spacing: 0; }
+  .person-dates {
+    grid-area: dates;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    margin-top: 10px;
+  }
+  .person-role {
+    grid-area: role;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text-soft);
+    margin-top: 10px;
+    text-wrap: pretty;
+  }
+  .person-arrow {
+    grid-area: arrow;
+    align-self: center;
+    font-family: var(--serif);
+    font-size: 18px;
+    color: var(--text-mute);
+    transition: color .18s, transform .18s;
+  }
+  .person-link:hover .person-arrow {
+    color: var(--ochre-deep);
+    transform: translateX(3px);
+  }
+
+  /* ── Mobile ─────────────────────────────────────────── */
+  @media (max-width: 720px) {
+    .people-meta { gap: 24px; }
+    .people-section-head {
+      grid-template-columns: 32px 1fr;
+      gap: 6px 14px;
+    }
+    .people-num { font-size: 24px; }
+    .people-section-count {
+      grid-column: 2;
+      margin-top: 2px;
+    }
+    .people-grid { grid-template-columns: 1fr; }
+    .person-card:nth-child(odd) { border-right: none; }
+    .person-link,
+    .person-card:nth-child(odd) .person-link,
+    .person-card:nth-child(even) .person-link {
+      padding: 22px 0 24px;
+    }
+    .person-name { font-size: 23px; }
+    .person-orig { font-size: 15px; }
+    .person-orig[lang='gr'] { font-size: 16px; }
+  }
+</style>

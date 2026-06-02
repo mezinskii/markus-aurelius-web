@@ -660,6 +660,44 @@ export async function getEntity(
   };
 }
 
+// ─── People hub ────────────────────────────────────────────────────────────────
+
+/** Hub grouping for the /people page. Mirrors the `category` enum in the
+ *  Sanity person schema. */
+export type PersonCategory = 'family' | 'teachers' | 'figures';
+
+export interface PersonHubItem {
+  slug: string;
+  name: string | null;
+  latinForm: string | null;
+  greekForm: string | null;
+  dates: string | null;
+  role: string | null;
+  school: string | null;
+  category: PersonCategory | null;
+}
+
+/** All people with a hub category, shaped for the /people index. Sorted
+ *  alphabetically by display name within each category (an index nominum) —
+ *  predictable and stable as more people are added. */
+export async function getAllPeople(lang: 'en' | 'ru'): Promise<PersonHubItem[]> {
+  const rows = await client.fetch<PersonHubItem[]>(
+    `*[_type=="person" && defined(category)]{
+      "slug": personId,
+      "name": name[$lang],
+      "latinForm": latinName,
+      "greekForm": greekName,
+      "dates": dates[$lang],
+      "role": role[$lang],
+      "school": school,
+      "category": category
+    }`,
+    { lang },
+  );
+
+  return rows.sort((a, b) => (a.name ?? a.slug).localeCompare(b.name ?? b.slug, lang));
+}
+
 /** All slugs of a given entity type — for getStaticPaths in the per-type route. */
 export async function getAllEntitySlugs(type: EntityType): Promise<string[]> {
   const slugField = SLUG_FIELD[type];

@@ -481,6 +481,22 @@ async function main() {
       sub: 'Сохранившиеся письма между Марком Аврелием и его учителем риторики. Перевод C. R. Haines (1919).',
       domain: 'readaurelius.org/ru/fronto',
     },
+    {
+      slug: 'people-en',
+      eyebrow: 'Meditations · Book I and beyond',
+      titleA: 'The People of',
+      titleB: 'Marcus Aurelius',
+      sub: 'Family, teachers of philosophy and rhetoric, and the figures he names — with biographies and links to the passages.',
+      domain: 'readaurelius.org/people',
+    },
+    {
+      slug: 'people-ru',
+      eyebrow: 'Размышления · Книга I и далее',
+      titleA: 'Люди',
+      titleB: 'Марка Аврелия',
+      sub: 'Семья, учителя философии и риторики и те, кого он упоминает — с биографиями и ссылками на пассажи.',
+      domain: 'readaurelius.org/ru/people',
+    },
   ];
 
   // Academic routes (Book II passages + entity cards) — fetched from Sanity.
