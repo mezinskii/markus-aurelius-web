@@ -498,23 +498,6 @@ const popoverI18n = {
         </h1>
       </div>
 
-      {/* Greek pin — collapsible */}
-      <section class="acad-m-greek" data-acad-m-greek>
-        <div class="acad-m-greek-head">
-          <span class="lbl">{t.originalGreek}</span>
-          <button class="acad-m-greek-tog" data-acad-m-greek-tog aria-label="Hide Greek">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 8h10"/></svg>
-          </button>
-        </div>
-        <div class="acad-m-greek-text" set:html={greekHtml} />
-        <div class="acad-m-greek-foot">
-          <span>{t.greekEdition}</span>
-        </div>
-      </section>
-      <button class="acad-m-greek-restore" data-acad-m-greek-show hidden>
-        <span class="ic">+</span>{lang === 'ru' ? 'Показать греческий' : 'Show Greek source'}
-      </button>
-
       {/* Translation tab strip — RU has only Rogovin (single tab visually
           documents the translator); EN has Long + Modern with a toggle. */}
       <div class="acad-m-tabstrip">
@@ -561,6 +544,23 @@ const popoverI18n = {
           <div class="acad-m-trans-body" set:html={altEn.html} />
         </article>
       )}
+
+      {/* Greek source — sits BELOW the translation on mobile; collapsible. */}
+      <section class="acad-m-greek" data-acad-m-greek>
+        <div class="acad-m-greek-head">
+          <span class="lbl">{t.originalGreek}</span>
+          <button class="acad-m-greek-tog" data-acad-m-greek-tog aria-label="Hide Greek">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 8h10"/></svg>
+          </button>
+        </div>
+        <div class="acad-m-greek-text" set:html={greekHtml} />
+        <div class="acad-m-greek-foot">
+          <span>{t.greekEdition}</span>
+        </div>
+      </section>
+      <button class="acad-m-greek-restore" data-acad-m-greek-show hidden>
+        <span class="ic">+</span>{lang === 'ru' ? 'Показать греческий' : 'Show Greek source'}
+      </button>
 
       {/* Footnote inline callout — populated by JS when reader taps a ¹. */}
       <div class="acad-m-fn-callout" data-acad-m-fn-callout hidden>
