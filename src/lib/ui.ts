@@ -13,7 +13,7 @@ export const BOOK_META = [
     note: { en: 'On time, mortality, and the present hour.', ru: 'О времени, смертности и настоящем часе.' },
     themes: { en: 'time, mortality, reason, the present hour', ru: 'время, смертность, разум, настоящий час' },
     quote: { en: 'We ought to consider not only that our life is daily wasting away.', ru: 'Помни, что жизнь убывает с каждым днём.' } },
-  { n: 4,  count: 51, note: { en: 'On the guiding principle and retreat within.', ru: 'О внутренней крепости.' },
+  { n: 4,  count: 51, enhanced: true, note: { en: 'On the guiding principle and retreat within.', ru: 'О внутренней крепости.' },
     themes: { en: 'inner retreat, the soul, change, opinion, the citadel within', ru: 'уединение, внутренняя крепость, изменение, мнение, душа' },
     quote: { en: 'Men seek retreats for themselves — but nowhere more quiet than in one\'s own soul.', ru: 'Уединись в самом себе.' } },
   { n: 5,  count: 36, note: { en: 'On duty, labour, and the common work.', ru: 'О долге и общем труде.' },
