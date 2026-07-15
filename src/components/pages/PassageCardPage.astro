@@ -31,6 +31,12 @@ import {
   ENTITY_TYPE_PATH,
 } from '../../lib/academic/ui';
 import {
+  ptToPlain,
+  workRef,
+  citationLine,
+  quotationBlock,
+} from '../../lib/academic/cite';
+import {
   pageUrl,
   passageJsonLd,
   breadcrumbsJsonLd,
@@ -223,6 +229,56 @@ const popoverI18n = {
     (Object.keys(ENTITY_TYPE_LABEL) as EntityType[]).map(k => [k, ENTITY_TYPE_LABEL[k][lang]]),
   ),
 };
+
+// ── Copy / cite / share payload ──────────────────────────────────────────────
+// Built here rather than in the browser so a copied attribution can never drift
+// from the translator credit this page renders. The handlers pick a variant by
+// the live [data-translator-pref] value and are pure string lookups.
+const citeFacts = { lang, roman: roman_b, chapter: card.chapter, url: fullUrl };
+
+const creditRogovin = `${t.transBy} ${card.russianTranslator || 'Семён Роговин'}, 1914`;
+const creditLong    = `${t.transBy} ${card.englishTranslator || 'George Long'}, 1862`;
+const creditModern  = `${creditLong} (${t.modernSuffix})`;
+const creditGreek   = `${t.greekBy} ${t.greekEditionCite}`;
+
+const variants: Record<string, { plain: string; quote: string; cite: string }> = {};
+const addVariant = (key: string, blocks: PTBlock[] | undefined, credit: string) => {
+  const text = ptToPlain(blocks);
+  if (!text) return;
+  variants[key] = {
+    // `plain` is the bare passage — the Web Share sheet appends the URL itself,
+    // so handing it `quote` would print the link twice.
+    plain: text,
+    quote: quotationBlock(citeFacts, text, credit),
+    cite: citationLine(citeFacts, credit),
+  };
+};
+
+// Mirrors the hard locale rule above: RU never offers the English translations.
+if (lang === 'ru') {
+  addVariant('rogovin', card.russianText, creditRogovin);
+} else {
+  addVariant('long', card.englishText, creditLong);
+  addVariant('modern', card.modernizationText, creditModern);
+}
+addVariant('greek', card.greekText, creditGreek);
+
+const hasGreek = Boolean(variants.greek);
+
+const shareData = {
+  url: fullUrl,
+  shareTitle: workRef(citeFacts),
+  /** Used when [data-translator-pref] names a variant we didn't ship. */
+  fallbackKey: lang === 'ru' ? 'rogovin' : 'long',
+  variants,
+  msg: {
+    copied: t.msgCopied,
+    linkCopied: t.msgLinkCopied,
+    citeCopied: t.msgCiteCopied,
+    greekCopied: t.msgGreekCopied,
+    failed: t.msgFailed,
+  },
+};
 ---
 <Layout
   title={title}
@@ -276,14 +332,48 @@ const popoverI18n = {
                   {t.compare}
                 </button>
               )}
-              <button data-acad-copy title={t.copy}>
+              {/* Everything left of this rule toggles how the page looks;
+                  everything right of it is a one-shot action. They used to sit
+                  in one undifferentiated row, which made the actions read as
+                  toggles that were stuck off. */}
+              <span class="acad-tools-sep" aria-hidden="true"></span>
+              <button class="acad-tool-act" data-acad-copy title={t.copyHint}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
                 {t.copy}
               </button>
-              <button data-acad-cite title={t.cite}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 7h4v6c0 2-1 4-4 4M14 7h4v6c0 2-1 4-4 4"/></svg>
-                {t.cite}
+              <button class="acad-tool-act" data-acad-share title={t.shareHint}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/></svg>
+                {t.share}
               </button>
+              <span class="acad-cite-wrap">
+                <button
+                  class="acad-tool-act"
+                  data-acad-cite
+                  title={t.citeHint}
+                  aria-haspopup="menu"
+                  aria-expanded="false"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M7 7h4v6c0 2-1 4-4 4M14 7h4v6c0 2-1 4-4 4"/></svg>
+                  {t.cite}
+                  <span class="acad-caret" aria-hidden="true">▾</span>
+                </button>
+                <div class="acad-cite-pop" data-acad-cite-pop role="menu" hidden>
+                  <button class="acad-cite-item" data-acad-copy-kind="cite" role="menuitem">
+                    <span class="l">{t.citeRef}</span>
+                    <span class="h">{t.citeRefHint}</span>
+                  </button>
+                  <button class="acad-cite-item" data-acad-copy-kind="link" role="menuitem">
+                    <span class="l">{t.copyLinkRow}</span>
+                    <span class="h">{t.copyLinkRowHint}</span>
+                  </button>
+                  {hasGreek && (
+                    <button class="acad-cite-item" data-acad-copy-kind="greek" role="menuitem">
+                      <span class="l">{t.citeGreek}</span>
+                      <span class="h">{t.citeGreekHint}</span>
+                    </button>
+                  )}
+                </div>
+              </span>
             </div>
           </div>
           {lang === 'en' && altEn && (
@@ -650,8 +740,8 @@ const popoverI18n = {
       {/* Spacer so content above bottombar isn't covered by it */}
       <div class="acad-m-bottombar-spacer"></div>
 
-      {/* Sticky bottom action bar — annotation toggle, sections sheet, copy
-          permalink (relies on existing data-acad-copy handler if present). */}
+      {/* Sticky bottom action bar — annotation toggle, sections sheet, and a
+          share button that opens the copy/share sheet below. */}
       <div class="acad-m-bottombar">
         <button class="acad-m-bbtn" data-acad-annotations-toggle aria-label={t.annotations}>
           <span class="ic">
@@ -660,7 +750,7 @@ const popoverI18n = {
           <span class="lb">{t.annotations}</span>
         </button>
         {commentaryToc.length > 0 && (
-          <button class="acad-m-bbtn" data-acad-m-toc-toggle aria-label={t.commentary}>
+          <button class="acad-m-bbtn" data-acad-m-sheet-open="toc" aria-label={t.commentary}>
             <span class="ic">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
             </span>
@@ -668,37 +758,70 @@ const popoverI18n = {
             <span class="ct">{commentaryToc.length}</span>
           </button>
         )}
-        <a class="acad-m-bbtn" href={`${langPrefix}/passage/${card.book}/${card.chapter}`}>
+        <button class="acad-m-bbtn" data-acad-m-sheet-open="share" aria-label={t.share}>
           <span class="ic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/></svg>
           </span>
-          <span class="lb">{t.copy}</span>
-        </a>
+          <span class="lb">{t.share}</span>
+        </button>
       </div>
+
+      {/* One scrim serves every sheet — it sits outside the TOC condition so
+          the share sheet still has a backdrop on passages with no commentary. */}
+      <div class="acad-m-sheet-scrim" data-acad-m-sheet-scrim hidden></div>
 
       {/* Sections bottom sheet (commentary TOC) */}
       {commentaryToc.length > 0 && (
-        <>
-          <div class="acad-m-sheet-scrim" data-acad-m-sheet-scrim hidden></div>
-          <div class="acad-m-sheet" data-acad-m-sheet="toc" hidden>
-            <div class="acad-m-sheet-handle"></div>
-            <div class="acad-m-sheet-head">
-              <span class="lbl">{t.commentary}</span>
-              <button data-acad-m-sheet-close aria-label="Close">×</button>
-            </div>
-            {commentaryToc.map((item, i) => (
-              <a
-                class={`acad-m-sheet-item${i === 0 ? ' on' : ''}`}
-                href={`#${item.id}`}
-                data-acad-m-sheet-jump
-              >
-                <span class="num">§ {item.num}</span>
-                <span class="ttl">{item.label}</span>
-              </a>
-            ))}
+        <div class="acad-m-sheet" data-acad-m-sheet="toc" hidden>
+          <div class="acad-m-sheet-handle"></div>
+          <div class="acad-m-sheet-head">
+            <span class="lbl">{t.commentary}</span>
+            <button data-acad-m-sheet-close aria-label={t.close}>×</button>
           </div>
-        </>
+          {commentaryToc.map((item, i) => (
+            <a
+              class={`acad-m-sheet-item${i === 0 ? ' on' : ''}`}
+              href={`#${item.id}`}
+              data-acad-m-sheet-jump
+            >
+              <span class="num">§ {item.num}</span>
+              <span class="ttl">{item.label}</span>
+            </a>
+          ))}
+        </div>
       )}
+
+      {/* Copy / share bottom sheet. The "Share…" row is removed at runtime when
+          the browser has no Web Share API rather than failing on tap. */}
+      <div class="acad-m-sheet" data-acad-m-sheet="share" hidden>
+        <div class="acad-m-sheet-handle"></div>
+        <div class="acad-m-sheet-head">
+          <span class="lbl">{t.share}</span>
+          <button data-acad-m-sheet-close aria-label={t.close}>×</button>
+        </div>
+        <button class="acad-m-sheet-item is-act" data-acad-copy-kind="text">
+          <span class="ttl">{t.copyTextRow}</span>
+          <span class="sub">{t.copyTextRowHint}</span>
+        </button>
+        <button class="acad-m-sheet-item is-act" data-acad-copy-kind="link">
+          <span class="ttl">{t.copyLinkRow}</span>
+          <span class="sub">{t.copyLinkRowHint}</span>
+        </button>
+        <button class="acad-m-sheet-item is-act" data-acad-copy-kind="cite">
+          <span class="ttl">{t.citeRef}</span>
+          <span class="sub">{t.citeRefHint}</span>
+        </button>
+        {hasGreek && (
+          <button class="acad-m-sheet-item is-act" data-acad-copy-kind="greek">
+            <span class="ttl">{t.citeGreek}</span>
+            <span class="sub">{t.citeGreekHint}</span>
+          </button>
+        )}
+        <button class="acad-m-sheet-item is-act" data-acad-share data-acad-share-row hidden>
+          <span class="ttl">{t.shareVia}</span>
+          <span class="sub">{t.shareViaHint}</span>
+        </button>
+      </div>
     </div>{/* end .acad-m-shell */}
 
     </div>{/* end data-acad-passage common parent */}
@@ -722,6 +845,7 @@ const popoverI18n = {
         so browsers don't execute them; the runtime parses them by id. */}
     <script is:inline type="application/json" id="acad-entity-data" set:html={JSON.stringify(popoverEntities)} />
     <script is:inline type="application/json" id="acad-popover-i18n" set:html={JSON.stringify(popoverI18n)} />
+    <script is:inline type="application/json" id="acad-share-data" set:html={JSON.stringify(shareData)} />
   </Shell>
 </Layout>
 
@@ -895,24 +1019,39 @@ const popoverI18n = {
     });
     co_close?.addEventListener('click', closeCallout);
 
-    // ── Sections bottom sheet (commentary TOC) ──
-    const sheet  = root.querySelector('[data-acad-m-sheet="toc"]');
-    const scrim  = root.querySelector('[data-acad-m-sheet-scrim]');
-    const tocBtn = root.querySelector('[data-acad-m-toc-toggle]');
-    const closeBtn = root.querySelector('[data-acad-m-sheet-close]');
-    function openSheet() {
-      sheet?.removeAttribute('hidden');
-      scrim?.removeAttribute('hidden');
-    }
-    function closeSheet() {
-      sheet?.setAttribute('hidden', '');
+    // ── Bottom sheets (commentary TOC + copy/share) ──
+    // Generic: [data-acad-m-sheet-open="x"] opens [data-acad-m-sheet="x"]. One
+    // scrim is shared, so opening a sheet closes any other first.
+    const scrim = root.querySelector('[data-acad-m-sheet-scrim]');
+    const sheets = Array.from(root.querySelectorAll('[data-acad-m-sheet]'));
+
+    function closeSheets() {
+      for (const s of sheets) s.setAttribute('hidden', '');
       scrim?.setAttribute('hidden', '');
     }
-    tocBtn?.addEventListener('click', openSheet);
-    closeBtn?.addEventListener('click', closeSheet);
-    scrim?.addEventListener('click', closeSheet);
+    function openSheet(name) {
+      const target = sheets.find((s) => s.getAttribute('data-acad-m-sheet') === name);
+      if (!target) return;
+      closeSheets();
+      target.removeAttribute('hidden');
+      scrim?.removeAttribute('hidden');
+    }
+
+    for (const btn of root.querySelectorAll('[data-acad-m-sheet-open]')) {
+      btn.addEventListener('click', () => openSheet(btn.getAttribute('data-acad-m-sheet-open')));
+    }
+    for (const btn of root.querySelectorAll('[data-acad-m-sheet-close]')) {
+      btn.addEventListener('click', closeSheets);
+    }
+    scrim?.addEventListener('click', closeSheets);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheets(); });
     for (const item of root.querySelectorAll('[data-acad-m-sheet-jump]')) {
-      item.addEventListener('click', () => setTimeout(closeSheet, 50));
+      item.addEventListener('click', () => setTimeout(closeSheets, 50));
+    }
+    // Copy/share rows dismiss the sheet on their way out — the toast is what
+    // confirms the action, so leaving the sheet up would just cover it.
+    for (const item of root.querySelectorAll('[data-acad-m-sheet="share"] [data-acad-copy-kind], [data-acad-m-sheet="share"] [data-acad-share]')) {
+      item.addEventListener('click', () => setTimeout(closeSheets, 120));
     }
   })();
 </script>
@@ -1242,5 +1381,130 @@ const popoverI18n = {
       if (e.target.closest('.fn-mark, .acad-fn')) return;
       if (activeKey) setActive(null);
     });
+  })();
+</script>
+
+<script>
+  /* Copy / cite / share. Bundled (not is:inline) so it can share the clipboard
+     helpers with the legacy PassageTools island — the two surfaces must agree
+     about what "copied" means.
+
+     Every string is prebuilt server-side and read from #acad-share-data; the
+     only runtime decision is which translation is currently on screen. Nothing
+     here announces success it didn't get: copyToClipboard reports whether the
+     write actually landed, and the toast follows that. */
+  import { copyToClipboard, shareOrCopyLink } from '../../lib/share';
+
+  (function () {
+    const root = document.querySelector('[data-acad-passage]');
+    const dataEl = document.getElementById('acad-share-data');
+    if (!root || !dataEl) return;
+
+    let data: any;
+    try {
+      data = JSON.parse(dataEl.textContent || '{}');
+    } catch {
+      return;
+    }
+    const variants = data.variants || {};
+    const msg = data.msg || {};
+    if (!Object.keys(variants).length) return;
+
+    // ── Toast ──────────────────────────────────────────────────────────────
+    let toastEl: HTMLDivElement | null = null;
+    let toastTimer = 0;
+    function toast(text: string, isError: boolean) {
+      if (!text) return;
+      if (!toastEl) {
+        toastEl = document.createElement('div');
+        toastEl.className = 'acad-toast';
+        toastEl.setAttribute('role', 'status');
+        toastEl.setAttribute('aria-live', 'polite');
+        document.body.appendChild(toastEl);
+      }
+      toastEl.textContent = text;
+      toastEl.classList.toggle('is-error', isError);
+      toastEl.classList.add('on');
+      clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => toastEl?.classList.remove('on'), 1900);
+    }
+
+    /** The variant for the translation the reader is actually looking at. */
+    function currentVariant() {
+      const pref = root!.getAttribute('data-translator-pref') || data.fallbackKey;
+      return variants[pref] || variants[data.fallbackKey] || null;
+    }
+
+    function payloadFor(kind: string | null) {
+      if (kind === 'link') return { text: data.url, ok: msg.linkCopied };
+      if (kind === 'greek') {
+        return variants.greek ? { text: variants.greek.quote, ok: msg.greekCopied } : null;
+      }
+      const v = currentVariant();
+      if (!v) return null;
+      if (kind === 'cite') return { text: v.cite, ok: msg.citeCopied };
+      return { text: v.quote, ok: msg.copied };
+    }
+
+    async function runCopy(kind: string | null) {
+      const p = payloadFor(kind);
+      if (!p) return;
+      const ok = await copyToClipboard(p.text);
+      toast(ok ? p.ok : msg.failed, !ok);
+    }
+
+    // ── Wiring ─────────────────────────────────────────────────────────────
+    for (const btn of document.querySelectorAll('[data-acad-copy]')) {
+      btn.addEventListener('click', () => runCopy('text'));
+    }
+    for (const btn of document.querySelectorAll('[data-acad-copy-kind]')) {
+      btn.addEventListener('click', () => runCopy(btn.getAttribute('data-acad-copy-kind')));
+    }
+
+    // The sheet's "Share…" row only appears where it can actually open
+    // something; the desktop button always works because it falls back to
+    // copying the link.
+    if (typeof navigator.share === 'function') {
+      document.querySelector('[data-acad-share-row]')?.removeAttribute('hidden');
+    }
+    for (const btn of document.querySelectorAll('[data-acad-share]')) {
+      btn.addEventListener('click', async () => {
+        const v = currentVariant();
+        const res = await shareOrCopyLink({
+          title: data.shareTitle,
+          text: v ? v.plain : undefined,
+          url: data.url,
+        });
+        if (res === 'copied') toast(msg.linkCopied, false);
+        else if (res === 'failed') toast(msg.failed, true);
+        // 'shared' / 'cancelled' — the OS sheet already gave its own feedback.
+      });
+    }
+
+    // ── Cite popover ───────────────────────────────────────────────────────
+    const citeBtn = document.querySelector('[data-acad-cite]');
+    const citePop = document.querySelector('[data-acad-cite-pop]');
+    if (citeBtn && citePop) {
+      const setOpen = (open: boolean) => {
+        citePop.toggleAttribute('hidden', !open);
+        citeBtn.setAttribute('aria-expanded', String(open));
+        citeBtn.classList.toggle('on', open);
+      };
+      citeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setOpen(citePop.hasAttribute('hidden'));
+      });
+      document.addEventListener('click', (e) => {
+        if (citePop.hasAttribute('hidden')) return;
+        if (e.target instanceof Node && citePop.contains(e.target)) return;
+        setOpen(false);
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') setOpen(false);
+      });
+      for (const item of citePop.querySelectorAll('[data-acad-copy-kind]')) {
+        item.addEventListener('click', () => setOpen(false));
+      }
+    }
   })();
 </script>

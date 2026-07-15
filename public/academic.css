@@ -155,6 +155,85 @@
 .acad-tools-mini button.on { color: var(--ochre-deep); border-color: var(--ochre); }
 .acad-tools-mini svg { width: 12px; height: 12px; stroke-width: 1.6; }
 
+/* Toggles (left) vs one-shot actions (right). The rule is the only thing
+   telling the reader that Copy/Share/Cite fire and forget while Annotations
+   and Compare hold a state — without it every button reads as a stuck toggle. */
+.acad-tools-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 0 5px;
+  background: var(--rule);
+}
+/* Dashed border = acts once. .on stays reserved for real state, which among
+   the actions only the cite popover has. */
+.acad-tools-mini .acad-tool-act { border-style: dashed; }
+.acad-tools-mini .acad-tool-act:hover { border-style: solid; }
+.acad-caret { font-size: 9px; opacity: 0.5; margin-left: 1px; }
+
+.acad-cite-wrap { position: relative; display: inline-flex; }
+.acad-cite-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 250px;
+  padding: 5px;
+  background: var(--bg, white);
+  border: 1px solid var(--rule-strong);
+  border-radius: 5px;
+  box-shadow: 0 8px 26px color-mix(in oklch, black 14%, transparent);
+}
+.acad-cite-pop[hidden] { display: none; }
+.acad-tools-mini .acad-cite-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 4px;
+  text-align: left;
+}
+.acad-tools-mini .acad-cite-item:hover { background: var(--ochre-wash); }
+.acad-cite-item .l {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.acad-cite-item .h {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--text-mute);
+  letter-spacing: 0;
+}
+
+/* Copy/share confirmation. The academic page had no feedback of any kind,
+   which is why even a working button read as broken. */
+.acad-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  z-index: 60;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: var(--ink, #1a1a1a);
+  color: var(--paper, #fff);
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+}
+.acad-toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+.acad-toast.is-error { background: var(--rubric, #8c2f22); }
+
+@media (prefers-reduced-motion: reduce) {
+  .acad-toast { transition: none; }
+}
+
 /* Greek block — pull-quote with paper-tone background. Per user spec it sits
    BELOW the primary translation, not above. Cross-refs render inside without
    a TYPE chip (the chip would clutter Greek text). */
@@ -1480,7 +1559,10 @@
     border-top: 1px solid var(--rule-strong);
     border-top-left-radius: 16px;
     border-top-right-radius: 16px;
-    padding: 8px 18px env(safe-area-inset-bottom, 20px);
+    /* max(), not a plain env() fallback: on devices with no home indicator the
+       inset resolves to 0px rather than being undefined, so the fallback never
+       applied and the last row sat flush against the screen edge. */
+    padding: 8px 18px max(20px, env(safe-area-inset-bottom));
     box-shadow: 0 -10px 30px -10px color-mix(in oklch, black 45%, transparent);
     max-height: 70vh;
     overflow-y: auto;
@@ -1544,6 +1626,36 @@
   }
   .acad-m-sheet-item.on .num,
   .acad-m-sheet-item.on .ttl { color: var(--ochre-deep); }
+
+  /* Action rows in the copy/share sheet. The TOC rows are commentary titles, so
+     they stay serif italic; these are commands and read as sans. */
+  .acad-m-sheet-item.is-act {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+    width: 100%;
+    background: transparent;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    font: inherit;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .acad-m-sheet-item.is-act:active { background: var(--ochre-wash); }
+  .acad-m-sheet-item.is-act[hidden] { display: none; }
+  .acad-m-sheet-item.is-act .ttl {
+    font-family: var(--sans);
+    font-style: normal;
+    font-size: 15px;
+    color: var(--text);
+  }
+  .acad-m-sheet-item.is-act .sub {
+    font-family: var(--sans);
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--text-mute);
+  }
 
   /* ───────────────────────────────────────────────────────────
      MOBILE ENTITY LAYOUT — .ent-m-shell

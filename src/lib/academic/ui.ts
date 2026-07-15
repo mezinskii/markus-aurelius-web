@@ -93,6 +93,36 @@ export const ACAD_UI = {
     compare: 'Compare',
     copy: 'Copy',
     cite: 'Cite',
+    share: 'Share',
+    copyHint: 'Copy the passage with its attribution',
+    shareHint: 'Share this passage',
+    citeHint: 'Copy a citation in another format',
+    // Cite popover / mobile share sheet rows
+    // Named against the main Copy button ("text + source") rather than by
+    // genre — and deliberately avoids "link", which the row below it owns.
+    citeRef: 'Reference only',
+    citeRefHint: 'No passage text — for a footnote',
+    citeGreek: 'Original Greek',
+    citeGreekHint: 'Greek text with its reference',
+    copyTextRow: 'Copy text',
+    copyTextRowHint: 'Passage with attribution',
+    copyLinkRow: 'Copy link',
+    copyLinkRowHint: 'Canonical URL of this passage',
+    shareVia: 'Share…',
+    shareViaHint: 'Open the system share sheet',
+    close: 'Close',
+    // Attribution fragments — colon-form keeps names in the nominative, which
+    // Russian needs since we can't decline a name we get from the CMS.
+    transBy: 'trans.:',
+    greekBy: 'Greek text:',
+    greekEditionCite: 'Leopold, Teubner 1908',
+    modernSuffix: 'modernized',
+    // Toast copy — never shown unless the write actually succeeded.
+    msgCopied: 'Copied',
+    msgLinkCopied: 'Link copied',
+    msgCiteCopied: 'Citation copied',
+    msgGreekCopied: 'Greek copied',
+    msgFailed: 'Copying is blocked in this browser',
     originalGreek: 'Original · ancient Greek',
     diacriticKey: 'Diacritic key',
     appearsIn: 'Appears in',
@@ -130,6 +160,36 @@ export const ACAD_UI = {
     compare: 'Сравнить',
     copy: 'Копировать',
     cite: 'Цитата',
+    share: 'Поделиться',
+    copyHint: 'Скопировать пассаж вместе с атрибуцией',
+    shareHint: 'Поделиться этим пассажем',
+    citeHint: 'Скопировать цитату в другом формате',
+    // Cite popover / mobile share sheet rows
+    // Named against the main Copy button ("text + source") rather than by
+    // genre — and deliberately avoids "link", which the row below it owns.
+    citeRef: 'Только источник',
+    citeRefHint: 'Без текста пассажа — для сноски',
+    citeGreek: 'Греческий оригинал',
+    citeGreekHint: 'Греческий текст со ссылкой',
+    copyTextRow: 'Копировать текст',
+    copyTextRowHint: 'Пассаж с атрибуцией',
+    copyLinkRow: 'Копировать ссылку',
+    copyLinkRowHint: 'Постоянный адрес пассажа',
+    shareVia: 'Поделиться…',
+    shareViaHint: 'Открыть системное меню',
+    close: 'Закрыть',
+    // Attribution fragments — colon-form keeps names in the nominative, which
+    // Russian needs since we can't decline a name we get from the CMS.
+    transBy: 'пер.:',
+    greekBy: 'греч. текст:',
+    greekEditionCite: 'Leopold, Teubner 1908',
+    modernSuffix: 'модернизация',
+    // Toast copy — never shown unless the write actually succeeded.
+    msgCopied: 'Скопировано',
+    msgLinkCopied: 'Ссылка скопирована',
+    msgCiteCopied: 'Цитата скопирована',
+    msgGreekCopied: 'Греческий скопирован',
+    msgFailed: 'Браузер запретил копирование',
     originalGreek: 'Оригинал · древнегреческий',
     diacriticKey: 'Диакритика',
     appearsIn: 'Встречается в',

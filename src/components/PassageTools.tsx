@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { UI, type Lang } from '../lib/ui';
+import { copyToClipboard, shareOrCopyLink } from '../lib/share';
 
 interface Props {
   book: number;
@@ -78,27 +79,24 @@ export default function PassageTools({ book, section, textEn, textRu, text, pass
   const copyText = async () => {
     const title = lang === 'ru' ? `Размышления — Книга ${book}.${section}` : `Meditations — Book ${book}.${section}`;
     const body = `${title}\n\n${cleanText(currentText)}`;
-    try { await navigator.clipboard.writeText(body); } catch {}
-    flashMsg(t.tools_copied);
+    const ok = await copyToClipboard(body);
+    flashMsg(ok ? t.tools_copied : t.tools_copy_failed);
   };
 
   const copyLink = async () => {
-    try { await navigator.clipboard.writeText(window.location.href); } catch {}
-    flashMsg(t.tools_link_copied);
+    const ok = await copyToClipboard(window.location.href);
+    flashMsg(ok ? t.tools_link_copied : t.tools_copy_failed);
   };
 
   const share = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: lang === 'ru' ? `Размышления ${book}.${section}` : `Meditations ${book}.${section}`,
-          text: cleanText(currentText),
-          url: window.location.href,
-        });
-        return;
-      } catch {}
-    }
-    copyLink();
+    const res = await shareOrCopyLink({
+      title: lang === 'ru' ? `Размышления ${book}.${section}` : `Meditations ${book}.${section}`,
+      text: cleanText(currentText),
+      url: window.location.href,
+    });
+    if (res === 'copied') flashMsg(t.tools_link_copied);
+    else if (res === 'failed') flashMsg(t.tools_copy_failed);
+    // 'shared' / 'cancelled' — the OS sheet already spoke for us.
   };
 
   return (
