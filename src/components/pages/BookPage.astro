@@ -1,7 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Shell from '../Shell';
-import { getMeditationsBook } from '../../lib/sanity';
+import { getMeditationsBook, getMeditationsBookCards } from '../../lib/sanity';
 import { BOOK_META, romanize, passageWord, UI, type Lang } from '../../lib/ui';
 import { breadcrumbsJsonLd, meditationsBookJsonLd, pageUrl, abs } from '../../lib/seo';
 
@@ -10,7 +10,12 @@ const { lang, bookNum } = Astro.props;
 const t = UI[lang];
 
 const meta = BOOK_META.find(b => b.n === bookNum)!;
-const passages = await getMeditationsBook(bookNum, lang);
+// Enhanced books render passageCards on the detail route with card chapter
+// numbering; list from the same cards so each row's preview matches the passage
+// it links to. Legacy books keep the George Long passage list.
+const passages = meta.enhanced
+  ? await getMeditationsBookCards(bookNum, lang)
+  : await getMeditationsBook(bookNum, lang);
 
 const langPrefix = lang === 'ru' ? '/ru' : '';
 const pathname = `${langPrefix}/book/${bookNum}`;

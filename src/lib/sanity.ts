@@ -59,6 +59,28 @@ export async function getMeditationsBook(
   return rows.sort((a, b) => parseInt(a.section, 10) - parseInt(b.section, 10));
 }
 
+/** Book listing rows sourced from passageCards, for *enhanced* books.
+ *  Enhanced books render passageCards on the detail route with their own
+ *  chapter numbering, which diverges from the legacy George Long `passage`
+ *  numbering (e.g. Book VI has 58 Long sections but 59 card chapters, shifting
+ *  by one from ch. 45). Driving the book listing from the same card data keeps
+ *  each row's preview and its linked passage in sync. `text` is the plain-text
+ *  of the passage in the current locale — the same base translation the card
+ *  detail page shows (englishText = George Long, russianText = Роговин). */
+export async function getMeditationsBookCards(
+  book: number,
+  lang: 'en' | 'ru' = 'en',
+): Promise<Array<{ book: number; section: string; text: string }>> {
+  const rows = await client.fetch<Array<{ book: number; chapter: number; text: string }>>(
+    `*[_type=="passageCard" && book==$book] | order(chapter asc) {
+       book, chapter,
+       "text": pt::text(select($lang == "ru" => russianText, englishText))
+     }`,
+    { book, lang },
+  );
+  return rows.map(r => ({ book: r.book, section: String(r.chapter), text: r.text ?? '' }));
+}
+
 export async function getAllMeditationsPassages(
   lang: 'en' | 'ru' = 'en',
 ): Promise<MeditationPassage[]> {
