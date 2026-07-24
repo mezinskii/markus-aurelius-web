@@ -1501,6 +1501,13 @@
     padding: 6px 6px env(safe-area-inset-bottom, 8px);
     max-width: 640px;
     margin: 0 auto;
+    /* Pin to its own GPU layer so mobile browsers don't re-settle the bar
+       mid-scroll: iOS releases plain fixed elements during momentum scroll
+       (they visibly jump up, then snap back), and the backdrop-filter blur
+       re-rasterises each frame. A promoted layer tracks the viewport smoothly. */
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
   }
   .acad-m-bbtn {
     background: transparent;
