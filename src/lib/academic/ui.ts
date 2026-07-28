@@ -149,6 +149,14 @@ export const ACAD_UI = {
     annotations: 'Annotations',
     annotationsHint: 'Show or hide the underlines on linked terms',
     greekEdition: 'Leopold · Teubner 1908',
+    // Sequential navigation
+    passageNav: 'Passage navigation',
+    prevPassage: 'Previous',
+    nextPassage: 'Next',
+    prevPassageLong: 'Previous passage',
+    nextPassageLong: 'Next passage',
+    jumpTo: 'Jump to a passage in this book',
+    kbdHint: 'move between passages',
   },
   ru: {
     read: 'Читать',
@@ -216,5 +224,13 @@ export const ACAD_UI = {
     annotations: 'Аннотации',
     annotationsHint: 'Показать или скрыть подчёркивание связанных терминов',
     greekEdition: 'Leopold · Teubner 1908',
+    // Sequential navigation
+    passageNav: 'Навигация по пассажам',
+    prevPassage: 'Предыдущий',
+    nextPassage: 'Следующий',
+    prevPassageLong: 'Предыдущий пассаж',
+    nextPassageLong: 'Следующий пассаж',
+    jumpTo: 'Перейти к пассажу этой книги',
+    kbdHint: 'переход между пассажами',
   },
 } as const;

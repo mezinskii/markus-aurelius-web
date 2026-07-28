@@ -17,6 +17,7 @@ import {
   type MeditationPassage,
   type PassageCard,
 } from '../../../lib/sanity';
+import { buildPassageNav, type PassageNav } from '../../../lib/passage-nav';
 
 export async function getStaticPaths() {
   const [legacy, cards] = await Promise.all([
@@ -26,12 +27,16 @@ export async function getStaticPaths() {
   const cardMap = new Map<string, PassageCard>();
   for (const c of cards) cardMap.set(`${c.book}.${c.chapter}`, c);
 
+  // Prev/next + in-book position, derived from the arrays we already hold.
+  const navMap = buildPassageNav(legacy, cards, 'en');
+
   // Start from the legacy set so paths/SEO/old translations stay stable.
   const paths = legacy.map(p => ({
     params: { book: String(p.book), section: p.section },
     props: {
       passage: p as MeditationPassage | null,
       card: cardMap.get(`${p.book}.${p.section}`) ?? null,
+      nav: navMap.get(`${p.book}.${p.section}`) ?? null,
     },
   }));
 
@@ -42,21 +47,22 @@ export async function getStaticPaths() {
     if (legacyKeys.has(key)) continue;
     paths.push({
       params: { book: String(c.book), section: String(c.chapter) },
-      props: { passage: null, card: c },
+      props: { passage: null, card: c, nav: navMap.get(key) ?? null },
     });
   }
   return paths;
 }
 
-const { passage, card } = Astro.props as {
+const { passage, card, nav } = Astro.props as {
   passage: MeditationPassage | null;
   card: PassageCard | null;
+  nav: PassageNav | null;
 };
 const bookNum = parseInt(Astro.params.book as string, 10);
 const section = Astro.params.section as string;
 ---
 {
   card
-    ? <PassageCardPage lang="en" card={card} />
+    ? <PassageCardPage lang="en" card={card} nav={nav} />
     : <PassagePage lang="en" bookNum={bookNum} section={section} passage={passage!} />
 }

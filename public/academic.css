@@ -1947,3 +1947,306 @@
   }
   .ent-m-passage-more[hidden] { display: none; }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   SEQUENTIAL NAVIGATION — pager, chapter grid, prev/next cards.
+   The academic page had no way forward or back except the
+   breadcrumb up to the book listing; these three surfaces cover
+   the three moments a reader needs one: mid-read (pager /
+   bottombar), end-of-read (cards), and "take me to N" (grid).
+───────────────────────────────────────────────────────────── */
+
+/* Head pager — sits under the breadcrumb in the left head column. */
+.acad-pager {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  margin-top: 14px;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: none;
+}
+.acad-pager .acad-pager-arrow,
+.acad-pager .acad-pager-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: var(--text-soft);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color .15s, background .15s;
+}
+.acad-pager .acad-pager-arrow:hover,
+.acad-pager .acad-pager-jump:hover {
+  color: var(--ochre-deep);
+  background: var(--ochre-wash);
+}
+.acad-pager .acad-pager-arrow:first-child { border-radius: 4px 0 0 4px; }
+.acad-pager .acad-pager-arrow:nth-last-child(2) { border-radius: 0 4px 4px 0; }
+.acad-pager .acad-pager-jump {
+  border-left: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  color: var(--text);
+}
+.acad-pager .acad-pager-jump.on { color: var(--ochre-deep); background: var(--ochre-wash); }
+.acad-pager .acad-pager-jump .of { color: var(--text-mute); }
+.acad-pager .chev { font-size: 14px; line-height: 1; opacity: .7; }
+.acad-pager .acad-pager-arrow.is-off { opacity: .28; pointer-events: none; }
+
+/* Chapter grid — shared by the desktop popover and the mobile sheet. */
+.acad-jump-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  width: 264px;
+  padding: 12px;
+  background: var(--bg, white);
+  border: 1px solid var(--rule-strong);
+  border-radius: 6px;
+  box-shadow: 0 8px 26px color-mix(in oklch, black 14%, transparent);
+}
+.acad-jump-pop[hidden] { display: none; }
+.acad-jump-head {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ochre-deep);
+  margin-bottom: 10px;
+}
+.acad-chapgrid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 3px;
+  max-height: 256px;
+  overflow-y: auto;
+}
+.acad-chapgrid .acad-chapcell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-soft);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: color .12s, background .12s, border-color .12s;
+}
+.acad-chapgrid .acad-chapcell:hover {
+  color: var(--ochre-deep);
+  border-color: var(--ochre);
+  background: var(--ochre-wash);
+}
+.acad-chapgrid .acad-chapcell.on {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+/* End-of-passage cards. `.is-next` is pinned to column 2 so a missing
+   previous neighbour (I.1) leaves the gap where the reader expects it
+   rather than sliding "next" to the left. */
+.acad-passnav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 54px;
+  padding-top: 26px;
+  border-top: 1px solid var(--rule);
+}
+.acad-passnav-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 15px 16px;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  text-decoration: none;
+  transition: border-color .15s, background .15s;
+}
+.acad-passnav-card:hover { border-color: var(--ochre); background: var(--ochre-wash); }
+.acad-passnav-card.is-next {
+  grid-column: 2;
+  text-align: right;
+  align-items: flex-end;
+}
+.acad-passnav-card .eyebrow {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+.acad-passnav-card:hover .eyebrow { color: var(--ochre-deep); }
+.acad-passnav-card .ref {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--text);
+}
+.acad-passnav-card .tx {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-soft);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.acad-passnav-kbd {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+.acad-passnav-kbd kbd {
+  font-family: var(--mono);
+  font-size: 10px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-right: 3px;
+  color: var(--text-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acad-pager .acad-pager-arrow,
+  .acad-pager .acad-pager-jump,
+  .acad-passnav-card,
+  .acad-chapgrid .acad-chapcell { transition: none; }
+}
+
+@media (max-width: 900px) {
+  /* Hero reference doubles as the jump control. */
+  .acad-m-refbtn {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 2px 0;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .acad-m-refbtn .pos {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+  }
+  .acad-m-refbtn .acad-caret { font-size: 10px; color: var(--text-mute); margin-left: -3px; }
+  .acad-m-refbtn:active .acad-m-ref { opacity: .6; }
+
+  /* End-of-scroll continuation. */
+  .acad-m-passnav { margin: 26px 14px 0; }
+  .acad-m-passnav-next {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px;
+    border: 1px solid color-mix(in oklch, var(--ochre-deep) 25%, var(--rule));
+    border-left: 3px solid var(--ochre-deep);
+    border-radius: 3px;
+    background: color-mix(in oklch, var(--ochre-wash) 45%, var(--bg, transparent));
+    text-decoration: none;
+  }
+  .acad-m-passnav-next .eyebrow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ochre-deep);
+  }
+  .acad-m-passnav-next .ref {
+    font-family: var(--mono);
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    color: var(--text);
+  }
+  .acad-m-passnav-next .tx {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: var(--text-soft);
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+  .acad-m-passnav-prev {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px 2px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-mute);
+    text-decoration: none;
+  }
+
+  /* Bottombar becomes flex so the arrow slots can stay narrow while the
+     middle tools share the rest — and so the bar still balances on a
+     passage with no commentary (one fewer middle button). */
+  .acad-m-bottombar {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+  }
+  .acad-m-bbtn { flex: 1 1 0; min-width: 0; }
+  .acad-m-bbtn.is-edge {
+    flex: 0 0 54px;
+    justify-content: center;
+    color: var(--text);
+  }
+  .acad-m-bbtn.is-edge .lb {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    color: var(--text-mute);
+  }
+  .acad-m-bbtn.is-edge.is-off { opacity: .25; pointer-events: none; }
+  .acad-m-bbtn.is-edge:active { background: var(--ochre-wash); }
+
+  /* Chapter grid inside the sheet — 44px targets, no inner scroller
+     (the sheet itself scrolls). */
+  .acad-m-chapgrid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+    max-height: none;
+    overflow: visible;
+    padding-bottom: 6px;
+  }
+  .acad-m-chapgrid .acad-chapcell {
+    min-height: 44px;
+    font-size: 13px;
+    border-color: var(--rule);
+    color: var(--text);
+  }
+}

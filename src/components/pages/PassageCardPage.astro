@@ -41,15 +41,29 @@ import {
   passageJsonLd,
   breadcrumbsJsonLd,
 } from '../../lib/seo';
+import type { PassageNav, PassageNeighbor } from '../../lib/passage-nav';
 
 interface Props {
   lang: Lang;
   card: PassageCard;
+  /** Prev/next + in-book position, precomputed in the route's getStaticPaths.
+   *  Null only if the route couldn't place this passage in the reading order —
+   *  the nav chrome is then omitted rather than rendered dead. */
+  nav?: PassageNav | null;
 }
-const { lang, card } = Astro.props;
+const { lang, card, nav = null } = Astro.props;
 const t = ACAD_UI[lang];
 const langPrefix = lang === 'ru' ? '/ru' : '';
 const pathname = `${langPrefix}/passage/${card.book}/${card.chapter}`;
+
+// ── Sequential navigation ────────────────────────────────────────────────────
+const prevN = nav?.prev ?? null;
+const nextN = nav?.next ?? null;
+const navHref = (n: PassageNeighbor) => `${langPrefix}/passage/${n.book}/${n.section}`;
+const navRef  = (n: PassageNeighbor) => `${romanize(n.book)}.${n.section}`;
+/** A neighbour in another book gets its book named — crossing VI→VII shouldn't
+ *  look like a numbering glitch. */
+const crossesBook = (n: PassageNeighbor) => n.book !== card.book;
 
 // Pre-build the indices used by every PT renderer invocation on this page.
 const entityIndex = buildEntityIndex(card);
@@ -305,6 +319,75 @@ const shareData = {
           <a href={`${langPrefix}/book/${card.book}`}>{t.book} {roman_b}</a>
           <span class="sep">/</span>
           <span>{card.book}.{card.chapter}</span>
+
+          {/* Pager — always in view, so moving on never requires scrolling to
+              the end of a long commentary. The middle button is both the
+              position readout and the jump target. */}
+          {nav && (
+            <nav class="acad-pager" aria-label={t.passageNav}>
+              {prevN ? (
+                <a
+                  class="acad-pager-arrow"
+                  data-acad-nav="prev"
+                  href={navHref(prevN)}
+                  rel="prev"
+                  title={`${t.prevPassageLong} — ${navRef(prevN)}`}
+                  aria-label={`${t.prevPassageLong} — ${navRef(prevN)}`}
+                >
+                  <span class="chev" aria-hidden="true">‹</span>
+                  {/* A bare number would read as a step backwards inside this
+                      book; across a boundary it needs its book named. */}
+                  <span class="n">{crossesBook(prevN) ? navRef(prevN) : prevN.section}</span>
+                </a>
+              ) : (
+                <span class="acad-pager-arrow is-off" aria-hidden="true">
+                  <span class="chev">‹</span>
+                </span>
+              )}
+              <button
+                class="acad-pager-jump"
+                data-acad-jump
+                title={t.jumpTo}
+                aria-haspopup="menu"
+                aria-expanded="false"
+              >
+                <span class="cur">{nav.position}</span>
+                <span class="of">/ {nav.total}</span>
+                <span class="acad-caret" aria-hidden="true">▾</span>
+              </button>
+              {nextN ? (
+                <a
+                  class="acad-pager-arrow"
+                  data-acad-nav="next"
+                  href={navHref(nextN)}
+                  rel="next"
+                  title={`${t.nextPassageLong} — ${navRef(nextN)}`}
+                  aria-label={`${t.nextPassageLong} — ${navRef(nextN)}`}
+                >
+                  <span class="n">{crossesBook(nextN) ? navRef(nextN) : nextN.section}</span>
+                  <span class="chev" aria-hidden="true">›</span>
+                </a>
+              ) : (
+                <span class="acad-pager-arrow is-off" aria-hidden="true">
+                  <span class="chev">›</span>
+                </span>
+              )}
+
+              <div class="acad-jump-pop" data-acad-jump-pop role="menu" hidden>
+                <div class="acad-jump-head">{t.book} {roman_b} · {nav.total} {t.passageCount_other}</div>
+                <div class="acad-chapgrid">
+                  {nav.chapters.map(ch => (
+                    <a
+                      class={`acad-chapcell${ch === String(card.chapter) ? ' on' : ''}`}
+                      href={`${langPrefix}/passage/${card.book}/${ch}`}
+                      role="menuitem"
+                      aria-current={ch === String(card.chapter) ? 'page' : undefined}
+                    >{ch}</a>
+                  ))}
+                </div>
+              </div>
+            </nav>
+          )}
         </div>
         <div class="acad-head-right">
           <div class="acad-ref-row">
@@ -528,6 +611,34 @@ const shareData = {
         <article class="acad-commentary" style="grid-column: 2" set:html={commentaryWithAnchors} />
       )}
 
+      {/* ─── SEQUENTIAL NAV ─── sits in the center column, right where the
+           reader runs out of text — the "what now" moment. */}
+      {nav && (prevN || nextN) && (
+        <nav class="acad-passnav" style="grid-column: 2" aria-label={t.passageNav}>
+          {prevN && (
+            <a class="acad-passnav-card" href={navHref(prevN)} rel="prev">
+              <span class="eyebrow">
+                ← {t.prevPassage}{crossesBook(prevN) && <> · {t.book} {romanize(prevN.book)}</>}
+              </span>
+              <span class="ref">{navRef(prevN)}</span>
+              <span class="tx">{prevN.preview}</span>
+            </a>
+          )}
+          {nextN && (
+            <a class="acad-passnav-card is-next" href={navHref(nextN)} rel="next">
+              <span class="eyebrow">
+                {t.nextPassage}{crossesBook(nextN) && <> · {t.book} {romanize(nextN.book)}</>} →
+              </span>
+              <span class="ref">{navRef(nextN)}</span>
+              <span class="tx">{nextN.preview}</span>
+            </a>
+          )}
+          <p class="acad-passnav-kbd">
+            <kbd>←</kbd><kbd>→</kbd> {t.kbdHint}
+          </p>
+        </nav>
+      )}
+
       {/* ─── META FOOTER ─── */}
       <footer class="acad-meta-foot">
         <div class="meta-row">
@@ -584,7 +695,22 @@ const shareData = {
           )}
         </div>
         <h1 class="acad-m-title">
-          <span class="acad-m-ref">MED. {roman_b}.{card.chapter}</span>
+          {nav ? (
+            /* The reference doubles as the jump control — the one element on
+               the screen a reader already reads as "where am I". */
+            <button
+              class="acad-m-refbtn"
+              data-acad-m-sheet-open="chapters"
+              aria-haspopup="dialog"
+              title={t.jumpTo}
+            >
+              <span class="acad-m-ref">MED. {roman_b}.{card.chapter}</span>
+              <span class="pos">{nav.position} {t.of} {nav.total}</span>
+              <span class="acad-caret" aria-hidden="true">▾</span>
+            </button>
+          ) : (
+            <span class="acad-m-ref">MED. {roman_b}.{card.chapter}</span>
+          )}
         </h1>
       </div>
 
@@ -737,12 +863,55 @@ const shareData = {
         <div><span>{t.status}</span><strong>{card.status}</strong></div>
       </div>
 
+      {/* Sequential nav — the "keep reading" card at the end of the scroll.
+          The bottombar arrows below cover mid-read moves; this covers the
+          reader who has finished and is deciding what happens next. */}
+      {nav && (nextN || prevN) && (
+        <nav class="acad-m-passnav" aria-label={t.passageNav}>
+          {nextN && (
+            <a class="acad-m-passnav-next" href={navHref(nextN)} rel="next">
+              <span class="eyebrow">
+                {t.nextPassageLong}{crossesBook(nextN) && <> · {t.book} {romanize(nextN.book)}</>}
+                <span class="ar" aria-hidden="true">→</span>
+              </span>
+              <span class="ref">{navRef(nextN)}</span>
+              <span class="tx">{nextN.preview}</span>
+            </a>
+          )}
+          {prevN && (
+            <a class="acad-m-passnav-prev" href={navHref(prevN)} rel="prev">
+              <span class="ar" aria-hidden="true">←</span>
+              {t.prevPassage} · {navRef(prevN)}
+            </a>
+          )}
+        </nav>
+      )}
+
       {/* Spacer so content above bottombar isn't covered by it */}
       <div class="acad-m-bottombar-spacer"></div>
 
-      {/* Sticky bottom action bar — annotation toggle, sections sheet, and a
-          share button that opens the copy/share sheet below. */}
+      {/* Sticky bottom action bar — prev/next in the thumb zone at the edges,
+          page tools in the middle. */}
       <div class="acad-m-bottombar">
+        {nav && (prevN ? (
+          <a
+            class="acad-m-bbtn is-edge"
+            href={navHref(prevN)}
+            rel="prev"
+            aria-label={`${t.prevPassageLong} — ${navRef(prevN)}`}
+          >
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 5l-7 7 7 7"/></svg>
+            </span>
+            <span class="lb">{crossesBook(prevN) ? navRef(prevN) : prevN.section}</span>
+          </a>
+        ) : (
+          <span class="acad-m-bbtn is-edge is-off" aria-hidden="true">
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 5l-7 7 7 7"/></svg>
+            </span>
+          </span>
+        ))}
         <button class="acad-m-bbtn" data-acad-annotations-toggle aria-label={t.annotations}>
           <span class="ic">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -764,11 +933,50 @@ const shareData = {
           </span>
           <span class="lb">{t.share}</span>
         </button>
+        {nav && (nextN ? (
+          <a
+            class="acad-m-bbtn is-edge"
+            href={navHref(nextN)}
+            rel="next"
+            aria-label={`${t.nextPassageLong} — ${navRef(nextN)}`}
+          >
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5l7 7-7 7"/></svg>
+            </span>
+            <span class="lb">{crossesBook(nextN) ? navRef(nextN) : nextN.section}</span>
+          </a>
+        ) : (
+          <span class="acad-m-bbtn is-edge is-off" aria-hidden="true">
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5l7 7-7 7"/></svg>
+            </span>
+          </span>
+        ))}
       </div>
 
       {/* One scrim serves every sheet — it sits outside the TOC condition so
           the share sheet still has a backdrop on passages with no commentary. */}
       <div class="acad-m-sheet-scrim" data-acad-m-sheet-scrim hidden></div>
+
+      {/* Chapter grid sheet — opened by tapping the reference in the hero. */}
+      {nav && (
+        <div class="acad-m-sheet" data-acad-m-sheet="chapters" hidden>
+          <div class="acad-m-sheet-handle"></div>
+          <div class="acad-m-sheet-head">
+            <span class="lbl">{t.book} {roman_b} · {nav.total} {t.passageCount_other}</span>
+            <button data-acad-m-sheet-close aria-label={t.close}>×</button>
+          </div>
+          <div class="acad-chapgrid acad-m-chapgrid">
+            {nav.chapters.map(ch => (
+              <a
+                class={`acad-chapcell${ch === String(card.chapter) ? ' on' : ''}`}
+                href={`${langPrefix}/passage/${card.book}/${ch}`}
+                aria-current={ch === String(card.chapter) ? 'page' : undefined}
+              >{ch}</a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Sections bottom sheet (commentary TOC) */}
       {commentaryToc.length > 0 && (
@@ -1035,6 +1243,10 @@ const shareData = {
       closeSheets();
       target.removeAttribute('hidden');
       scrim?.removeAttribute('hidden');
+      // A 75-chapter grid opens scrolled to the top, which hides the reader's
+      // own position. Bring the current chapter into view instead.
+      const here = target.querySelector('.acad-chapcell.on');
+      if (here) here.scrollIntoView({ block: 'center' });
     }
 
     for (const btn of root.querySelectorAll('[data-acad-m-sheet-open]')) {
@@ -1057,6 +1269,64 @@ const shareData = {
 </script>
 
 <script is:inline>
+  /* Sequential navigation: the head pager's chapter-grid popover, and ←/→ keys.
+     The keys mirror the legacy passage page so the shortcut means the same
+     thing on both reading surfaces. */
+  (function () {
+    const root = document.querySelector('[data-acad-passage]');
+    if (!root) return;
+
+    // ── Chapter grid popover (desktop head pager) ──
+    const jumpBtn = root.querySelector('[data-acad-jump]');
+    const jumpPop = root.querySelector('[data-acad-jump-pop]');
+    if (jumpBtn && jumpPop) {
+      const setOpen = (open) => {
+        jumpPop.toggleAttribute('hidden', !open);
+        jumpBtn.setAttribute('aria-expanded', String(open));
+        jumpBtn.classList.toggle('on', open);
+        if (open) {
+          const here = jumpPop.querySelector('.acad-chapcell.on');
+          if (here) here.scrollIntoView({ block: 'center' });
+        }
+      };
+      jumpBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setOpen(jumpPop.hasAttribute('hidden'));
+      });
+      document.addEventListener('click', (e) => {
+        if (jumpPop.hasAttribute('hidden')) return;
+        if (e.target instanceof Node && jumpPop.contains(e.target)) return;
+        setOpen(false);
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') setOpen(false);
+      });
+    }
+
+    // ── ←/→ keys. The pager links exist once per page and carry the same
+    //    hrefs the mobile bar uses, so one lookup serves both layouts. ──
+    const prevLink = root.querySelector('a[data-acad-nav="prev"]');
+    const nextLink = root.querySelector('a[data-acad-nav="next"]');
+    if (!prevLink && !nextLink) return;
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      // While the chapter grid is open the arrows belong to it, not to the
+      // page — leaving the passage mid-choice would be a surprise.
+      if (root.querySelector('[data-acad-jump-pop]:not([hidden])')) return;
+      const el = e.target;
+      // Never steal the arrows from a field, a caret, or a native control.
+      if (el instanceof HTMLElement) {
+        if (el.isContentEditable) return;
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      }
+      const link = e.key === 'ArrowLeft' ? prevLink : nextLink;
+      if (!link) return;
+      e.preventDefault();
+      window.location.href = link.href;
+    });
+  })();
+
   /* Translator-pill click handler. Persists the user's choice in localStorage
      and swaps the visible translation block. EN-locale only. Syncs BOTH
      desktop pills and mobile tab strip + both layouts' translation panels. */
