@@ -25,7 +25,7 @@ export const BOOK_META = [
   { n: 7,  count: 75, enhanced: true, note: { en: 'Aphorisms and quotations collected.', ru: 'Изречения и заметки.' },
     themes: { en: 'aphorisms, quotations, citations from Heraclitus and Epictetus, fragments', ru: 'афоризмы, цитаты из Гераклита и Эпиктета, краткие заметки' },
     quote: { en: 'Do not be ashamed to be helped; thy business is to do thy duty.', ru: 'Не стыдись принимать помощь.' } },
-  { n: 8,  count: 61, note: { en: 'On opinion, judgment, the present.', ru: 'О суждении и настоящем.' },
+  { n: 8,  count: 61, enhanced: true, note: { en: 'On opinion, judgment, the present.', ru: 'О суждении и настоящем.' },
     themes: { en: 'opinion, judgment, the present moment, providence', ru: 'мнение, суждение, настоящий момент, провидение' },
     quote: { en: 'Everything which happens is as familiar as the rose in spring.', ru: 'Всё привычно, как роза весной.' } },
   { n: 9,  count: 42, note: { en: 'On justice and the social being.', ru: 'О справедливости и общности.' },
