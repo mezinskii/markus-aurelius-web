@@ -3,6 +3,7 @@ import { defineConfig, fontProviders } from 'astro/config';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import vercel from '@astrojs/vercel';
+import { lastmodMap } from './src/lib/sitemap-lastmod.ts';
 
 const SITE = process.env.PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://readaurelius.org';
 
@@ -45,6 +46,13 @@ export default defineConfig({
       i18n: {
         defaultLocale: 'en',
         locales: { en: 'en', ru: 'ru' },
+      },
+      async serialize(item) {
+        const path = new URL(item.url).pathname.replace(/(.)\/$/, '$1');
+        const lastmod = (await lastmodMap()).get(path);
+        if (lastmod) item.lastmod = lastmod;
+
+        return item;
       },
     }),
   ],
