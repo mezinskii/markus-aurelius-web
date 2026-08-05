@@ -28,7 +28,7 @@ export const BOOK_META = [
   { n: 8,  count: 61, enhanced: true, note: { en: 'On opinion, judgment, the present.', ru: 'О суждении и настоящем.' },
     themes: { en: 'opinion, judgment, the present moment, providence', ru: 'мнение, суждение, настоящий момент, провидение' },
     quote: { en: 'Everything which happens is as familiar as the rose in spring.', ru: 'Всё привычно, как роза весной.' } },
-  { n: 9,  count: 42, note: { en: 'On justice and the social being.', ru: 'О справедливости и общности.' },
+  { n: 9,  count: 42, enhanced: true, note: { en: 'On justice and the social being.', ru: 'О справедливости и общности.' },
     themes: { en: 'justice, social being, wrongdoing, gods, community', ru: 'справедливость, общественность, проступок, боги, общность' },
     quote: { en: 'He who does wrong does wrong against himself.', ru: 'Творящий зло — творит против себя.' } },
   { n: 10, count: 38, note: { en: 'On acceptance of fate.', ru: 'О принятии судьбы.' },
