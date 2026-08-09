@@ -31,7 +31,7 @@ export const BOOK_META = [
   { n: 9,  count: 42, enhanced: true, note: { en: 'On justice and the social being.', ru: 'О справедливости и общности.' },
     themes: { en: 'justice, social being, wrongdoing, gods, community', ru: 'справедливость, общественность, проступок, боги, общность' },
     quote: { en: 'He who does wrong does wrong against himself.', ru: 'Творящий зло — творит против себя.' } },
-  { n: 10, count: 38, note: { en: 'On acceptance of fate.', ru: 'О принятии судьбы.' },
+  { n: 10, count: 38, enhanced: true, note: { en: 'On acceptance of fate.', ru: 'О принятии судьбы.' },
     themes: { en: 'fate, simplicity, indifference to fame, acceptance', ru: 'судьба, простота, равнодушие к славе, принятие' },
     quote: { en: 'Wilt thou, my soul, never be good and simple and naked?', ru: 'Когда же ты, душа, станешь проста?' } },
   { n: 11, count: 39, note: { en: 'On rational nature and forbearance.', ru: 'О разуме и терпении.' },
