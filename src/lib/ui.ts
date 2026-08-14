@@ -34,7 +34,7 @@ export const BOOK_META = [
   { n: 10, count: 38, enhanced: true, note: { en: 'On acceptance of fate.', ru: 'О принятии судьбы.' },
     themes: { en: 'fate, simplicity, indifference to fame, acceptance', ru: 'судьба, простота, равнодушие к славе, принятие' },
     quote: { en: 'Wilt thou, my soul, never be good and simple and naked?', ru: 'Когда же ты, душа, станешь проста?' } },
-  { n: 11, count: 39, note: { en: 'On rational nature and forbearance.', ru: 'О разуме и терпении.' },
+  { n: 11, count: 39, enhanced: true, note: { en: 'On rational nature and forbearance.', ru: 'О разуме и терпении.' },
     themes: { en: 'rational soul, patience, forbearance, dealing with offenders', ru: 'разумная душа, терпение, выдержка, обращение с обидчиками' },
     quote: { en: 'The properties of the rational soul: it sees itself, analyses itself.', ru: 'Разумная душа видит саму себя.' } },
   { n: 12, count: 36, note: { en: 'Final book. On dying well.', ru: 'Последняя книга. О достойном уходе.' },
