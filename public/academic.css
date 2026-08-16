@@ -325,7 +325,11 @@
    linked terms so the reader notices them at a glance. A toggle in the tools
    bar (data-show-annotations="off") lets the reader hide the markers for a
    cleaner read; hover still surfaces them so popovers remain discoverable. */
-.xref {
+/* `.pref` is a passage citation ("ср. 2.2"). It shares the xref look but is a
+   plain navigating link: passages have no popover, so its click must not be
+   suppressed by the `.xref` handler on the passage page. */
+.xref,
+.pref {
   cursor: pointer;
   color: inherit;
   border-bottom: 2px solid color-mix(in oklch, var(--ochre-deep) 80%, transparent);
@@ -335,6 +339,8 @@
 }
 .xref:hover,
 .xref:focus-visible,
+.pref:hover,
+.pref:focus-visible,
 .xref.xref-active {
   color: var(--ochre-deep);
   border-bottom-color: var(--ochre-deep);
@@ -348,11 +354,14 @@
 
 /* Annotations OFF — hide the underline, but restore it on hover/focus so
    popovers remain discoverable. */
-[data-show-annotations="off"] .xref {
+[data-show-annotations="off"] .xref,
+[data-show-annotations="off"] .pref {
   border-bottom-color: transparent;
 }
 [data-show-annotations="off"] .xref:hover,
 [data-show-annotations="off"] .xref:focus-visible,
+[data-show-annotations="off"] .pref:hover,
+[data-show-annotations="off"] .pref:focus-visible,
 [data-show-annotations="off"] .xref.xref-active {
   border-bottom-color: color-mix(in oklch, var(--ochre-deep) 80%, transparent);
 }

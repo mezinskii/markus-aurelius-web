@@ -54,6 +54,9 @@ const TYPE_LABEL: Record<EntityType, { en: string; ru: string }> = {
 
 const langPrefix = (lang: 'en' | 'ru') => (lang === 'ru' ? '/ru' : '');
 
+/** A passage crossRef target: `passageCard.03-01` → book 3, section 1. */
+const PASSAGE_ID_RE = /^passageCard\.(\d{2})-(\d{2})$/;
+
 // ─── HTML utilities ───────────────────────────────────────────────────────────
 
 function escapeHtml(s: string): string {
@@ -176,6 +179,26 @@ function applyCustomMark(def: AnyMarkDef, inner: string, ctx: RenderContext): st
   switch (def._type) {
     case 'crossRef': {
       const targetId = def.target?._ref ?? '';
+
+      // Passages are not an EntityType and so never enter the entity index —
+      // which is why passage↔passage citations used to fall through to plain
+      // text. Their route is fully determined by the id, so resolve it here and
+      // skip the lookup. The class is `pref`, not `xref`, on purpose: the
+      // passage page suppresses clicks on `.xref` and routes them through the
+      // popover, which holds no entry for a passage; a `.pref` simply navigates.
+      // No type chip — a citation like "2.2" already announces itself as one.
+      const passage = PASSAGE_ID_RE.exec(targetId);
+      if (passage) {
+        const url =
+          `${langPrefix(ctx.lang)}/passage/${Number(passage[1])}/${Number(passage[2])}`;
+        return (
+          `<a class="pref"` +
+          ` href="${escapeHtml(url)}"` +
+          ` data-passage-id="${escapeHtml(targetId)}"` +
+          `>${inner}</a>`
+        );
+      }
+
       const ent = ctx.entityIndex.get(targetId);
       if (!ent || !ent.slug) {
         // Unknown reference — render as plain text rather than a broken link.

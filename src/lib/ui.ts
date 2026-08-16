@@ -37,7 +37,7 @@ export const BOOK_META = [
   { n: 11, count: 39, enhanced: true, note: { en: 'On rational nature and forbearance.', ru: 'О разуме и терпении.' },
     themes: { en: 'rational soul, patience, forbearance, dealing with offenders', ru: 'разумная душа, терпение, выдержка, обращение с обидчиками' },
     quote: { en: 'The properties of the rational soul: it sees itself, analyses itself.', ru: 'Разумная душа видит саму себя.' } },
-  { n: 12, count: 36, note: { en: 'Final book. On dying well.', ru: 'Последняя книга. О достойном уходе.' },
+  { n: 12, count: 36, enhanced: true, note: { en: 'Final book. On dying well.', ru: 'Последняя книга. О достойном уходе.' },
     themes: { en: 'death, farewell, nature, dying well, leaving the stage', ru: 'смерть, прощание, природа, достойный уход, конец' },
     quote: { en: 'Pass through this little space of time conformably to nature.', ru: 'Пройди малое время в согласии с природой.' } },
 ];
