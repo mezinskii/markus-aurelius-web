@@ -14,6 +14,9 @@ export interface Props {
   /** Extra stylesheet hrefs loaded after /styles.css. Used by Book II academic
    *  routes to layer on /academic.css without paying its cost on every page. */
   extraStylesheets?: string[];
+  /** False when the page has no counterpart in the other language (e.g. a
+   *  passage not translated yet). Drops hreflang so crawlers aren't sent to a 404. */
+  hasAlternate?: boolean;
 }
 
 const SITE_ORIGIN =
@@ -28,6 +31,7 @@ const {
   jsonLd = [],
   ogImage,
   extraStylesheets = [],
+  hasAlternate = true,
 } = Astro.props;
 
 // Compute hreflang URLs
@@ -74,9 +78,13 @@ const ogImageUrl = ogImage ?? ogForRoute(stripped, lang);
     <link rel="canonical" href={canonicalUrl} />
 
     {/* hreflang alternates */}
-    <link rel="alternate" hreflang="en" href={enUrl} />
-    <link rel="alternate" hreflang="ru" href={ruUrl} />
-    <link rel="alternate" hreflang="x-default" href={enUrl} />
+    {hasAlternate && (
+      <>
+        <link rel="alternate" hreflang="en" href={enUrl} />
+        <link rel="alternate" hreflang="ru" href={ruUrl} />
+        <link rel="alternate" hreflang="x-default" href={enUrl} />
+      </>
+    )}
 
     {/* Crawler hints */}
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
@@ -87,7 +95,7 @@ const ogImageUrl = ogImage ?? ogForRoute(stripped, lang);
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:locale" content={lang === "ru" ? "ru_RU" : "en_US"} />
-    <meta property="og:locale:alternate" content={lang === "ru" ? "en_US" : "ru_RU"} />
+    {hasAlternate && <meta property="og:locale:alternate" content={lang === "ru" ? "en_US" : "ru_RU"} />}
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:image" content={ogImageUrl} />
     <meta property="og:image:width" content="1200" />

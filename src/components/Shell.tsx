@@ -8,6 +8,9 @@ interface Props {
   lang: Lang;
   /** Current page path passed in from the server, e.g. "/book/3" or "/ru/book/3". */
   pathname: string;
+  /** Where the language toggle points when the page has no direct counterpart
+   *  in the other language, e.g. the book page for an untranslated passage. */
+  altPathname?: string;
   children: ReactNode;
 }
 
@@ -18,7 +21,7 @@ function localizedHref(pathname: string, target: Lang): string {
   return stripped;
 }
 
-export default function Shell({ route, lang, pathname, children }: Props) {
+export default function Shell({ route, lang, pathname, altPathname = pathname, children }: Props) {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [searchOpen, setSearchOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -40,8 +43,8 @@ export default function Shell({ route, lang, pathname, children }: Props) {
     document.documentElement.setAttribute('data-theme', next);
   };
 
-  const enHref = localizedHref(pathname, 'en');
-  const ruHref = localizedHref(pathname, 'ru');
+  const enHref = localizedHref(lang === 'en' ? pathname : altPathname, 'en');
+  const ruHref = localizedHref(lang === 'ru' ? pathname : altPathname, 'ru');
 
   const t = UI[lang];
 

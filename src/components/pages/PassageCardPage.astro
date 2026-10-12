@@ -50,8 +50,10 @@ interface Props {
    *  Null only if the route couldn't place this passage in the reading order —
    *  the nav chrome is then omitted rather than rendered dead. */
   nav?: PassageNav | null;
+  /** Whether this passage exists in the other language. */
+  hasAlternate?: boolean;
 }
-const { lang, card, nav = null } = Astro.props;
+const { lang, card, nav = null, hasAlternate = true } = Astro.props;
 const t = ACAD_UI[lang];
 const langPrefix = lang === 'ru' ? '/ru' : '';
 const pathname = `${langPrefix}/passage/${card.book}/${card.chapter}`;
@@ -301,8 +303,9 @@ const shareData = {
   basePath={`/passage/${card.book}/${card.chapter}`}
   extraStylesheets={['/academic.css']}
   jsonLd={jsonLd}
+  hasAlternate={hasAlternate}
 >
-  <Shell route="passage" lang={lang} pathname={pathname} client:idle>
+  <Shell route="passage" lang={lang} pathname={pathname} altPathname={hasAlternate ? pathname : `/book/${card.book}`} client:idle>
     <div
       data-acad-passage
       data-book={card.book}

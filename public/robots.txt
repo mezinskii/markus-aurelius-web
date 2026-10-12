@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /api/
 
 # Block Vercel preview/branch deployments via canonical, but explicitly
 # allow primary indexing here. Search engines de-duplicate via canonical URL.

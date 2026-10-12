@@ -13,8 +13,10 @@ interface Props {
   bookNum: number;
   section: string;
   passage: MeditationPassage;
+  /** Whether this passage exists in the other language. */
+  hasAlternate?: boolean;
 }
-const { lang, bookNum, section, passage } = Astro.props;
+const { lang, bookNum, section, passage, hasAlternate = true } = Astro.props;
 const t = UI[lang];
 
 const meta = BOOK_META.find(b => b.n === bookNum)!;
@@ -88,8 +90,8 @@ const jsonLd = [
   ]),
 ];
 ---
-<Layout title={title} description={description} lang={lang} basePath={`/passage/${bookNum}/${section}`} jsonLd={jsonLd}>
-  <Shell route="passage" lang={lang} pathname={pathname} client:idle>
+<Layout title={title} description={description} lang={lang} basePath={`/passage/${bookNum}/${section}`} jsonLd={jsonLd} hasAlternate={hasAlternate}>
+  <Shell route="passage" lang={lang} pathname={pathname} altPathname={hasAlternate ? pathname : `/book/${bookNum}`} client:idle>
     <div class="passage-screen">
 
       <aside class="passage-side left">
