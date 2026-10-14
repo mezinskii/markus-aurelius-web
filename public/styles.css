@@ -1523,8 +1523,8 @@ mark.hl-match {
 }
 
 @media (max-width: 600px) {
-  .subscribe { padding: 30px 22px 26px; }
-  .subscribe--minimal { padding: 22px 18px 20px; }
+  .subscribe { margin-top: 36px; padding: 22px 20px 22px; }
+  .subscribe--minimal { margin-top: 0; padding: 18px 16px 18px; }
   .subscribe-title { font-size: 22px; }
   .subscribe-form { flex-direction: column; gap: 10px; }
   .subscribe-button { padding: 13px 22px; }
